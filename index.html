@@ -508,15 +508,15 @@
                         </table>
                     </div>
                 </div>
-                <div class="modal-footer bg-light" style="border-radius: 0 0 20px 20px;">
+                <div class="modal-dialog-footer bg-light" style="border-radius: 0 0 20px 20px; padding: 15px; text-align: right;">
                     <button type="button" class="btn btn-lg btn-outline-secondary px-4" data-bs-dismiss="modal">ปิด/แก้ไขข้อมูล</button>
-                    <button type="button" class="btn btn-lg btn-success px-5 flex-fill fs-4 fw-bold" onclick="confirmPrintAndSave()">ยืนยันพิมพ์ & บันทึก</button>
+                    <button type="button" class="btn btn-lg btn-success px-5 fs-4 fw-bold" onclick="confirmPrintAndSave()">ยืนยันพิมพ์ & บันทึก</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- MODAL VIEW IMAGE (สำหรับใช้แสดงผลดูรูปสลิปและรูปใบเสร็จโดยไม่ต้องเปิดแท็บใหม่) -->
+    <!-- MODAL VIEW IMAGE (แก้ไขเรียบร้อย: เพิ่มปุ่มกดดาวน์โหลด/เปิดดูรูปภาพจริงข้างนอก) -->
     <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
@@ -525,7 +525,13 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body text-center bg-secondary p-2">
-                    <img id="imageModalTarget" src="" class="img-fluid rounded shadow" style="max-height: 75vh;" alt="ภาพหลักฐานแนบ">
+                    <img id="imageModalTarget" src="" class="img-fluid rounded shadow border border-light border-2" style="max-height: 70vh;" alt="ภาพหลักฐานแนบ">
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <a id="imageModalDownloadLink" href="#" target="_blank" class="btn btn-outline-dark btn-sm px-3 fw-bold fs-6">
+                        <i class="bi bi-box-arrow-up-right me-1"></i> เปิดในแท็บใหม่ / ดาวน์โหลดรูปภาพจริง
+                    </a>
+                    <button type="button" class="btn btn-secondary btn-sm px-3 fs-6 fw-bold" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
                 </div>
             </div>
         </div>
@@ -899,10 +905,50 @@
             renderReportTable(CENTRAL_TRANSACTIONS_REPORT);
         }
 
+        // =================================================================
+        // 🔮 ฟังก์ชันแปลงลิงก์ Google Drive อัตโนมัติ (Bulletproof On-the-fly Parser)
+        // =================================================================
+        function getDirectGoogleDriveUrl(url) {
+            if (!url) return '';
+            const cleanUrl = url.trim();
+            
+            // หากเป็นลิงก์ Direct อยู่แล้ว หรือไม่ใช่ลิงก์ Google Drive ให้ส่งกลับทันที
+            if (cleanUrl.includes('lh3.googleusercontent.com') || cleanUrl.includes('drive.google.com/uc')) {
+                return cleanUrl;
+            }
+
+            let fileId = '';
+            // เงื่อนไขที่ 1: ตรวจจับลิงก์แบบยาว /file/d/FILE_ID/view
+            const regLongFormat = /\/file\/d\/([^\/]+)/;
+            // เงื่อนไขที่ 2: ตรวจจับลิงก์แบบ query ?id=FILE_ID
+            const regQueryFormat = /[?&]id=([^&]+)/;
+
+            let match = cleanUrl.match(regLongFormat);
+            if (match && match[1]) {
+                fileId = match[1];
+            } else {
+                match = cleanUrl.match(regQueryFormat);
+                if (match && match[1]) {
+                    fileId = match[1];
+                }
+            }
+
+            // หากสกัดกุญแจสำเร็จ ให้ส่งลิงก์เรียกภาพแบบ Raw Direct ไปใช้งาน
+            if (fileId) {
+                return "https://lh3.googleusercontent.com/d/" + fileId;
+            }
+            return cleanUrl; // Fallback ป้องกันเว็บพัง
+        }
+
         // เปิดดูรูปภาพสลิปที่แนบในโมดอลย่อย
         function showAttachmentImage(url, title) {
             document.getElementById('imageModalTitle').innerText = title;
-            document.getElementById('imageModalTarget').src = url;
+            
+            // เรียกใช้งานฟังก์ชันแปลงรหัสลิงก์สลิปให้เปลี่ยนเป็น Direct Image
+            const directUrl = getDirectGoogleDriveUrl(url);
+            
+            document.getElementById('imageModalTarget').src = directUrl;
+            document.getElementById('imageModalDownloadLink').href = url; // ให้ผู้ใช้สามารถกดเปิดแท็บใหม่เพื่อดูภาพขนาดต้นฉบับได้
             
             if (!imageModalObj) imageModalObj = new bootstrap.Modal(document.getElementById('imageModal'));
             imageModalObj.show();
