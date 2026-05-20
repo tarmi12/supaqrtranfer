@@ -28,13 +28,13 @@
         .app-header {
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             color: white;
-            padding: 30px 0;
+            padding: 25px 0;
             margin-bottom: 20px;
             border-bottom: 6px solid #ef4444;
             box-shadow: 0 4px 20px rgba(0,0,0,0.15);
         }
         .app-header h1 {
-            font-size: 2.5rem;
+            font-size: 2.2rem;
             font-weight: 800;
         }
         .card {
@@ -145,6 +145,19 @@
             font-weight: 600;
         }
         
+        /* สไตล์หน้าจอล็อกอิน */
+        .login-container {
+            max-width: 480px;
+            margin: 80px auto;
+        }
+        .login-card {
+            border-radius: 24px;
+            border: none;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+            background: #ffffff;
+            padding: 40px;
+        }
+
         #printArea { display: none; }
 
         @media print {
@@ -165,13 +178,54 @@
 </head>
 <body>
 
+    <!-- แถบหัวข้อยินดีต้อนรับหลัก -->
     <header class="app-header">
-        <div class="container text-center">
-            <h1>ระบบบันทึกจ่ายเงินโอนลูกค้า (Supabase)</h1>
+        <div class="container d-flex align-items-center justify-content-between px-3">
+            <h1 class="mb-0"><i class="bi bi-wallet2 me-2"></i>ระบบจ่ายเงินโอนลูกค้า</h1>
+            <!-- แสดงปุ่มออกจากระบบเฉพาะเวลาล็อกอินแล้ว -->
+            <button id="logoutBtn" class="btn btn-outline-light btn-sm px-3 py-2 fs-6 fw-bold border-2" style="display: none;" onclick="handleLogout()">
+                <i class="bi bi-box-arrow-right me-1"></i> ออกจากระบบ
+            </button>
         </div>
     </header>
 
-    <div class="container pb-5">
+    <!-- 1. ด่านแรก: หน้าจอล็อกอินความปลอดภัย (Login Section) -->
+    <div class="container" id="loginSection">
+        <div class="login-container">
+            <div class="login-card">
+                <div class="text-center mb-4">
+                    <div class="bg-danger text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 70px; height: 70px;">
+                        <i class="bi bi-shield-lock-fill fs-1"></i>
+                    </div>
+                    <h3 class="fw-bold text-dark">ระบบรักษาความปลอดภัย</h3>
+                    <p class="text-muted fs-6">กรุณาเข้าสู่ระบบเพื่อใช้งานฐานข้อมูลสลิป</p>
+                </div>
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label class="form-label fs-6" for="loginEmail">อีเมลผู้ใช้งาน (Email)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-muted border-2"><i class="bi bi-envelope"></i></span>
+                            <input type="email" id="loginEmail" class="form-control py-2 fs-6" placeholder="name@company.com" required>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fs-6" for="loginPassword">รหัสผ่าน (Password)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-muted border-2"><i class="bi bi-key"></i></span>
+                            <input type="password" id="loginPassword" class="form-control py-2 fs-6" placeholder="ระบุรหัสผ่านของคุณ" required>
+                        </div>
+                    </div>
+                    <button type="submit" id="loginSubmitBtn" class="btn btn-danger w-100 py-3 fs-5 fw-bold shadow-sm">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> เข้าสู่ระบบทันที
+                    </button>
+                </form>
+                <div id="loginAlertContainer" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. ส่วนแอปพลิเคชันหลัก: จะโผล่ขึ้นมาเฉพาะพนักงานที่ล็อกอินผ่านแล้วเท่านั้น -->
+    <div class="container pb-5" id="appMainSection" style="display: none;">
         <!-- แถบเมนูด้านบนสลับโหมดการทำงาน -->
         <div class="row justify-content-center mb-4">
             <div class="col-lg-9 col-xl-8">
@@ -193,7 +247,7 @@
         <!-- กล่องเนื้อหาแยกตามเมนู -->
         <div class="tab-content" id="mainTabContent">
             
-            <!-- เมนูที่ 1: หน้าฟอร์มบันทึกข้อมูลโอนเงิน (ของเดิม) -->
+            <!-- เมนูที่ 1: หน้าฟอร์มบันทึกข้อมูลโอนเงิน -->
             <div class="tab-pane fade show active" id="form-content" role="tabpanel" aria-labelledby="form-tab">
                 <div class="row justify-content-center">
                     <div class="col-lg-9 col-xl-8">
@@ -205,7 +259,7 @@
                                         <div class="col-md-12">
                                             <label class="form-label" for="customerSelect">เลือกลูกค้าในระบบ</label>
                                             <select id="customerSelect" class="form-select form-select-lg border-primary text-primary" style="font-size:1.35rem;" onchange="loadCustomerInfo()" required>
-                                                <option value="">กำลังเชื่อมต่อฐานข้อมูล Supabase...</option>
+                                                <option value="">กำลังโหลดคลังรายชื่อ...</option>
                                             </select>
                                         </div>
 
@@ -583,6 +637,106 @@
         let currentAction = 'CREATE'; // 'CREATE' หรือ 'REPRINT'
         let currentTxId = null;        // ไอดีของธุรกรรมที่ถูกเลือกขึ้นมาพิมพ์ซ้ำ
         let reprintCountToSave = 1;    // ตัวเลขจำนวนครั้งการพิมพ์เพื่อบันทึกทับลง Supabase
+
+        // =================================================================
+        // 🔒 ระบบจัดการความปลอดภัยและการเข้าสู่ระบบ (Authentication)
+        // =================================================================
+        
+        // ตรวจสอบเซสชันผู้ใช้งานปัจจุบันเมื่อเปิดโปรเจกต์
+        async function checkUserSession() {
+            try {
+                const { data: { session }, error } = await supabaseClient.auth.getSession();
+                if (error) throw error;
+                
+                if (session) {
+                    onAuthSuccess(session.user);
+                } else {
+                    onAuthRequired();
+                }
+            } catch (err) {
+                console.error("Session check error:", err);
+                onAuthRequired();
+            }
+        }
+
+        // ฟังการเปลี่ยนแปลงสถานะเข้าสู่ระบบ/ออกจากระบบแบบเรียลไทม์
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' && session) {
+                onAuthSuccess(session.user);
+            } else if (event === 'SIGNED_OUT') {
+                onAuthRequired();
+            }
+        });
+
+        // ฟังก์ชันเมื่อล็อกอินผ่านสำเร็จ
+        function onAuthSuccess(user) {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('appMainSection').style.display = 'block';
+            document.getElementById('logoutBtn').style.display = 'block';
+            
+            // ใส่ชื่อย่อผู้ใช้งานหรืออีเมลลงในช่องผู้คีย์ระบบให้อัตโนมัติเพื่อความสะดวก
+            const userEmailPrefix = user.email.split('@')[0];
+            document.getElementById('createdBy').value = userEmailPrefix;
+
+            // เริ่มดึงข้อมูลลูกค้ามาแสดงผลทันทีหลังได้รับอนุญาตเข้าใช้
+            initDateTime();
+            fetchCustomersFromSupabase();
+        }
+
+        // ฟังก์ชันเมื่อไม่ได้ล็อกอิน หรือกดออกจากระบบ
+        function onAuthRequired() {
+            document.getElementById('appMainSection').style.display = 'none';
+            document.getElementById('logoutBtn').style.display = 'none';
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('loginForm').reset();
+            document.getElementById('loginAlertContainer').innerHTML = '';
+        }
+
+        // จัดการส่งแบบฟอร์มล็อกอิน
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const submitBtn = document.getElementById('loginSubmitBtn');
+            const alertContainer = document.getElementById('loginAlertContainer');
+
+            alertContainer.innerHTML = '';
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> กำลังตรวจสอบสิทธิ์...`;
+
+            try {
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) throw error;
+                
+                // ล็อกอินสำเร็จ (onAuthStateChange จะพาไปสเตจถัดไปโดยอัตโนมัติ)
+            } catch (err) {
+                console.error("Login failed:", err.message);
+                alertContainer.innerHTML = `
+                    <div class="alert alert-danger border-2 p-3 fw-bold fs-6" role="alert">
+                        <i class="bi bi-shield-slash-fill me-1"></i> เข้าสู่ระบบไม่สำเร็จ: อีเมลหรือรหัสผ่านไม่ถูกต้อง!
+                    </div>
+                `;
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i class="bi bi-box-arrow-in-right me-1"></i> เข้าสู่ระบบทันที`;
+            }
+        });
+
+        // จัดการเมื่อกดปุ่มออกจากระบบ (Logout)
+        async function handleLogout() {
+            try {
+                const { error } = await supabaseClient.auth.signOut();
+                if (error) throw error;
+            } catch (err) {
+                console.error("Logout error:", err.message);
+                // ดึงพนักงานกลับไปหน้าเข้าใช้เพื่อความปลอดภัยในกรณีฉุกเฉิน
+                onAuthRequired();
+            }
+        }
 
         // ดึงรายชื่อลูกค้า (จากตาราง customers ใน Supabase)
         async function fetchCustomersFromSupabase() {
@@ -1145,9 +1299,8 @@
             isNewCustomer = false;
         }
 
-        // เริ่มโหลดรายชื่อลูกค้าทำงานทันทีเมื่อเปิดใช้งานหน้าเว็บ
-        initDateTime();
-        fetchCustomersFromSupabase();
+        // เริ่มโหลดและตรวจสอบสิทธิ์เข้าใช้งานเซสชันปัจจุบันทันทีที่หน้าเว็บทำงาน
+        checkUserSession();
     </script>
 </body>
 </html>
