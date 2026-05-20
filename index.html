@@ -23,7 +23,7 @@
             background: #eef2f7;
             font-family: 'Sarabun', sans-serif;
             color: #0f172a;
-            font-size: 1.25rem;
+            font-size: 1.15rem; /* แก้ไข: ลดขนาดตัวอักษรหน้าเว็บลง 1 ขนาด */
         }
         .app-header {
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
@@ -48,20 +48,20 @@
             border-bottom: 2px solid #e2e8f0;
             padding: 20px 24px;
             font-weight: 800;
-            font-size: 1.4rem;
+            font-size: 1.3rem;
             color: #1e293b;
         }
         .form-label {
             font-weight: 700;
             color: #1e293b;
             margin-bottom: 8px;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
         }
         .form-control, .form-select {
             border: 2px solid #94a3b8;
             border-radius: 12px;
-            padding: 12px 18px;
-            font-size: 1.25rem;
+            padding: 10px 16px;
+            font-size: 1.15rem;
             font-weight: 600;
             transition: all 0.2s;
             color: #0f172a;
@@ -79,9 +79,9 @@
         }
         .btn {
             border-radius: 14px;
-            padding: 14px 28px;
+            padding: 12px 24px;
             font-weight: 800;
-            font-size: 1.25rem;
+            font-size: 1.15rem;
             transition: all 0.2s;
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
         }
@@ -98,7 +98,7 @@
         }
         .preview-slip-modal table {
             width: 100%;
-            font-size: 1.05rem;
+            font-size: 1.15rem;
             border-collapse: collapse;
         }
         .preview-dashed-line {
@@ -106,7 +106,7 @@
             margin: 15px 0;
         }
         .preview-large-title {
-            font-size: 38px;
+            font-size: 40px;
             text-align: center;
             line-height: 1.1;
         }
@@ -120,7 +120,7 @@
             color: #b91c1c;
         }
         
-        /* สไตล์ตารางรายงานเพิ่มเติม */
+        /* สไตล์ตารางรายงาน */
         .nav-pills .nav-link {
             border-radius: 12px;
             color: #475569;
@@ -140,7 +140,7 @@
             border-bottom: 3px solid #cbd5e1;
         }
         .report-table td {
-            font-size: 1.15rem;
+            font-size: 1.1rem;
             vertical-align: middle;
             font-weight: 600;
         }
@@ -158,6 +158,40 @@
             padding: 40px;
         }
 
+        /* 🔮 สไตล์สำหรับระบบค้นหารายชื่อ Autocomplete Dropdown เพิ่มเติม */
+        .search-results-box {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border: 2px solid #ef4444;
+            border-radius: 14px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            max-height: 380px;
+            overflow-y: auto;
+            z-index: 1050;
+            margin-top: 5px;
+            display: none;
+        }
+        .search-item {
+            padding: 12px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            cursor: pointer;
+            transition: background 0.15s ease-in-out;
+            text-align: left;
+            background: none;
+            border-left: none;
+            border-right: none;
+            width: 100%;
+        }
+        .search-item:hover {
+            background-color: #f1f5f9;
+        }
+        .search-item:last-child {
+            border-bottom: none;
+        }
+
         #printArea { display: none; }
 
         @media print {
@@ -166,12 +200,26 @@
                 display: block !important;
                 position: absolute;
                 left: 0; top: 0; width: 80mm; margin: 0; padding: 1mm 2mm;
-                font-family: 'Sarabun', sans-serif; font-size: 14px; color: #000; line-height: 1.5; background: #ffffff;
+                font-family: 'Sarabun', sans-serif; 
+                font-size: 16px; /* ขยายขนาดหลักตัวอักษรสลิปที่พิมพ์จริงขึ้น 1 ขนาด */
+                color: #000; line-height: 1.5; background: #ffffff;
             }
             #printArea, #printArea * { font-weight: 600 !important; }
             .print-bolder, .print-bolder * { font-weight: 800 !important; }
-            .print-large-title { font-size: 46px !important; margin-bottom: 2mm; text-align: center; font-weight: 800 !important; }
-            .print-warning-box { border: 1px solid #000; padding: 2mm; font-size: 20px !important; text-align: center; margin: 3mm 0; font-weight: 800 !important; }
+            .print-large-title { 
+                font-size: 48px !important; 
+                margin-bottom: 2mm; 
+                text-align: center; 
+                font-weight: 800 !important; 
+            }
+            .print-warning-box { 
+                border: 1px solid #000; 
+                padding: 2mm; 
+                font-size: 22px !important; 
+                text-align: center; 
+                margin: 3mm 0; 
+                font-weight: 800 !important; 
+            }
             @page { size: 80mm auto; margin: 0; }
         }
     </style>
@@ -256,20 +304,38 @@
                             <div class="card-body p-4">
                                 <form id="paymentForm">
                                     <div class="row g-3">
+                                        <!-- 🔮 ปรับปรุง: ช่องพิมพ์ค้นหารายชื่อลูกค้าแบบไดนามิก รองรับกรณีชื่อซ้ำกันได้สมบูรณ์ -->
                                         <div class="col-md-12">
-                                            <label class="form-label" for="customerSelect">เลือกลูกค้าในระบบ</label>
-                                            <select id="customerSelect" class="form-select form-select-lg border-primary text-primary" style="font-size:1.35rem;" onchange="loadCustomerInfo()" required>
-                                                <option value="">กำลังโหลดคลังรายชื่อ...</option>
-                                            </select>
+                                            <label class="form-label" for="customerSearchInput">
+                                                <i class="bi bi-search text-danger me-1"></i> พิมพ์เพื่อค้นหารายชื่อลูกค้าในคลังระบบ
+                                            </label>
+                                            <div class="position-relative">
+                                                <div class="input-group">
+                                                    <span class="input-group-text bg-white border-primary border-2 border-end-0 text-primary">
+                                                        <i id="searchIcon" class="bi bi-search"></i>
+                                                    </span>
+                                                    <input type="text" id="customerSearchInput" class="form-control form-control-lg border-primary border-2 border-start-0 fw-bold text-primary" placeholder="พิมพ์ชื่อร้านค้า, เบอร์โทร, เลขบัญชีเพื่อค้นหา..." onfocus="showCustomerDropdown()" oninput="filterCustomerSearch()" autocomplete="off" required>
+                                                    <button type="button" class="btn btn-danger border-danger border-2 px-3" onclick="toggleCustomerDropdown()" title="เปิด/ปิดรายการ">
+                                                        <i class="bi bi-chevron-down"></i>
+                                                    </button>
+                                                </div>
+                                                <!-- กล่องลอยแสดงรายการค้นหาผลลัพธ์ -->
+                                                <div id="customerSearchDropdown" class="search-results-box shadow-lg"></div>
+                                            </div>
                                         </div>
 
-                                        <div class="col-md-6">
+                                        <!-- จัดเรียงแถวข้อมูลลูกค้าให้ลงตัวเพื่อความสวยงาม -->
+                                        <div class="col-md-4">
                                             <label class="form-label text-danger">เลขที่ใบเสร็จเงินโอน (สร้างอัตโนมัติ)</label>
                                             <input type="text" class="form-control text-danger fw-bold border-danger" id="receiptNumber" readonly required>
                                         </div>
-                                        <div class="col-md-6">
+                                        <div class="col-md-4">
                                             <label class="form-label">ชื่อลูกค้า / ร้านค้า</label>
-                                            <input type="text" class="form-control" id="customerName" placeholder="เลือกรายชื่อเพื่อดึงข้อมูล" readonly required>
+                                            <input type="text" class="form-control" id="customerName" placeholder="คลิกเลือกรายชื่อด้านบน" readonly required>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label text-primary"><i class="bi bi-telephone"></i> เบอร์โทรลูกค้า</label>
+                                            <input type="text" class="form-control" id="customerPhone" placeholder="เบอร์โทรศัพท์ (ถ้ามี)" readonly>
                                         </div>
 
                                         <div class="col-md-4">
@@ -387,7 +453,7 @@
                                             <tr>
                                                 <th style="width: 14%;">วันเวลาทำรายการ</th>
                                                 <th style="width: 14%;">เลขที่ใบเสร็จ</th>
-                                                <th style="width: 14%;">ชื่อลูกค้า / ร้านค้า</th>
+                                                <th style="width: 16%;">ชื่อลูกค้า (เบอร์โทร)</th>
                                                 <th style="width: 11%;" class="text-end">ยอดเงินโอน</th>
                                                 <th style="width: 14%;">บัญชีปลายทาง</th>
                                                 <th style="width: 9%;">พิมพ์ (ครั้ง)</th>
@@ -437,6 +503,8 @@
                         <table>
                             <tr class="fw-bold text-danger"><td style="width: 45%;">เลขที่ใบเสร็จ:</td><td class="text-end text-break" id="vReceiptNo">-</td></tr>
                             <tr><td valign="top">ลูกค้า:</td><td class="text-end text-break fw-bold" id="vCustomer" style="font-size: 1.15rem;">-</td></tr>
+                            <!-- แสดงเบอร์โทรศัพท์ในหน้าพรีวิวต้นฉบับ -->
+                            <tr><td valign="top">เบอร์โทร:</td><td class="text-end text-break fw-bold" id="vCustomerPhone" style="font-size: 1.15rem;">-</td></tr>
                             <tr><td>วันที่โอน:</td><td class="text-end fw-bold" id="vDate">-</td></tr>
                             <tr><td>บิลเลขที่:</td><td class="text-end text-break" id="vBill">-</td></tr>
                             <tr class="fw-bold text-dark"><td>ธนาคาร:</td><td class="text-end" id="vBank">-</td></tr>
@@ -485,6 +553,8 @@
                         <table>
                             <tr class="fw-bold text-danger"><td style="width: 45%;">เลขที่ใบเสร็จ:</td><td class="text-end text-break" id="vReceiptNoCopy">-</td></tr>
                             <tr><td valign="top">ลูกค้า:</td><td class="text-end text-break fw-bold" id="vCustomerCopy" style="font-size: 1.15rem;">-</td></tr>
+                            <!-- แสดงเบอร์โทรศัพท์ในหน้าพรีวิวสำเนา -->
+                            <tr><td valign="top">เบอร์โทร:</td><td class="text-end text-break fw-bold" id="vCustomerPhoneCopy" style="font-size: 1.15rem;">-</td></tr>
                             <tr><td>วันที่โอน:</td><td class="text-end fw-bold" id="vDateCopy">-</td></tr>
                             <tr><td>บิลเลขที่:</td><td class="text-end text-break" id="vBillCopy">-</td></tr>
                             <tr class="fw-bold text-dark"><td>ธนาคาร:</td><td class="text-end" id="vBankCopy">-</td></tr>
@@ -508,7 +578,8 @@
                         </table>
                     </div>
                 </div>
-                <div class="modal-dialog-footer bg-light" style="border-radius: 0 0 20px 20px; padding: 15px; text-align: right;">
+                <!-- ปรับจาก modal-dialog-footer เป็น modal-footer เพื่อให้ปุ่มจัดระเบียบสไตล์ตามโครงสร้าง Bootstrap แท้ -->
+                <div class="modal-footer bg-light" style="border-radius: 0 0 20px 20px; padding: 15px; justify-content: flex-end;">
                     <button type="button" class="btn btn-lg btn-outline-secondary px-4" data-bs-dismiss="modal">ปิด/แก้ไขข้อมูล</button>
                     <button type="button" class="btn btn-lg btn-success px-5 fs-4 fw-bold" onclick="confirmPrintAndSave()">ยืนยันพิมพ์ & บันทึก</button>
                 </div>
@@ -516,7 +587,7 @@
         </div>
     </div>
 
-    <!-- MODAL VIEW IMAGE (แก้ไขเรียบร้อย: เพิ่มปุ่มกดดาวน์โหลด/เปิดดูรูปภาพจริงข้างนอก) -->
+    <!-- MODAL VIEW IMAGE (แสดงผลดูรูปสลิปและรูปใบเสร็จ) -->
     <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
@@ -527,6 +598,7 @@
                 <div class="modal-body text-center bg-secondary p-2">
                     <img id="imageModalTarget" src="" class="img-fluid rounded shadow border border-light border-2" style="max-height: 70vh;" alt="ภาพหลักฐานแนบ">
                 </div>
+                <!-- ปรับคลาสคีย์ปุ่มปิดให้เป็น btn-secondary เติมโครงสร้างให้ครบถ้วน -->
                 <div class="modal-footer bg-light py-2">
                     <a id="imageModalDownloadLink" href="#" target="_blank" class="btn btn-outline-dark btn-sm px-3 fw-bold fs-6">
                         <i class="bi bi-box-arrow-up-right me-1"></i> เปิดในแท็บใหม่ / ดาวน์โหลดรูปภาพจริง
@@ -553,9 +625,13 @@
 
                 <div id="pNewCustWarning" class="print-warning-box" style="display: none;">(เพิ่มใหม่) บัญชีอยู่นอกระบบ</div>
                 <hr style="border-top:1px dashed #000; margin:2mm 0;">
-                <table style="width:100%; font-size:13px; border-collapse:collapse; text-align: left;">
+                
+                <!-- เพิ่มฟอนต์ในบิลสั่งพิมพ์ขึ้นจาก 13px เป็น 15px เพื่อความคมชัดอ่านง่ายขึ้นตามกำหนด -->
+                <table style="width:100%; font-size:15px; border-collapse:collapse; text-align: left;">
                     <tr><td style="padding:2mm 0; width:45%;">เลขที่ใบเสร็จ:</td><td style="text-align:right;" id="pReceiptNo"></td></tr>
-                    <tr><td style="padding:2mm 0;" valign="top">ลูกค้า:</td><td style="text-align:right; font-size: 15px;" id="pCustomer"></td></tr>
+                    <tr><td style="padding:2mm 0;" valign="top">ลูกค้า:</td><td style="text-align:right; font-size: 16px;" id="pCustomer"></td></tr>
+                    <!-- แถวแสดงเบอร์โทรศัพท์บนสลิปต้นฉบับสั่งพิมพ์ -->
+                    <tr><td style="padding:2mm 0;" valign="top">เบอร์โทร:</td><td style="text-align:right; font-size: 16px;" id="pCustomerPhone"></td></tr>
                     <tr><td style="padding:2mm 0;">วันที่โอน:</td><td style="text-align:right;" id="pDate"></td></tr>
                     <tr><td style="padding:2mm 0;">บิลเลขที่:</td><td style="text-align:right;" id="pBill"></td></tr>
                     <tr class="print-bolder"><td style="padding:2mm 0;">ธนาคาร:</td><td style="text-align:right;" id="pBank"></td></tr>
@@ -564,25 +640,25 @@
                     <tr class="print-bolder"><td style="padding:3mm 0 1mm 0;">ยอดเงิน:</td><td style="text-align:right;" id="pAmount"></td></tr>
                     <tr class="print-bolder"><td colspan="2" style="text-align:right; padding-bottom:3mm;" id="pAmountText"></td></tr>
                     <tr><td colspan="2"><hr style="border-top:1px dashed #000; margin:2mm 0;"></td></tr>
-                    <tr><td style="padding:2mm 0;" valign="top">สินค้า/หมายเหตุ:</td><td style="text-align:right; font-size:12px;" id="pRemark"></td></tr>
-                    <tr><td style="padding:2mm 0;" valign="top">รายละเอียดสลิป:</td><td style="text-align:right; font-size:12px;" id="pSlip"></td></tr>
+                    <tr><td style="padding:2mm 0;" valign="top">สินค้า/หมายเหตุ:</td><td style="text-align:right; font-size:14px;" id="pRemark"></td></tr>
+                    <tr><td style="padding:2mm 0;" valign="top">รายละเอียดสลิป:</td><td style="text-align:right; font-size:14px;" id="pSlip"></td></tr>
                     <tr><td colspan="2"><hr style="border-top:1px dashed #000; margin:2mm 0;"></td></tr>
-                    <tr style="font-size: 12px;"><td>วันเวลาพิมพ์จริง:</td><td style="text-align:right;" id="pPrintTime"></td></tr>
+                    <tr style="font-size: 14px;"><td>วันเวลาพิมพ์จริง:</td><td style="text-align:right;" id="pPrintTime"></td></tr>
                 </table>
-                <table style="width: 100%; margin-top: 30px; text-align: center; font-size: 12px; border-collapse: collapse;">
+                <table style="width: 100%; margin-top: 30px; text-align: center; font-size: 14px; border-collapse: collapse;">
                     <tr>
                         <td style="width: 50%; padding-top: 25px; border-top: 1px dashed #000;">..................................................<br>( ผู้โอนเงิน )</td>
                         <td style="width: 50%; padding-top: 25px; border-top: 1px dashed #000;">..................................................<br>( ผู้รับเงิน/ลูกค้า )</td>
                     </tr>
                 </table>
-                <div style="font-size:11px; margin-top: 15px; text-align: left;">สร้างโดย: <span id="pCreator"></span></div>
+                <div style="font-size:13px; margin-top: 15px; text-align: left;">สร้างโดย: <span id="pCreator"></span></div>
                 <div style="display: flex; flex-direction: column; align-items: center; margin-top: 15px; text-align: center;">
                     <div id="pQrCode" style="display: inline-block; padding: 4px; background: #fff; border: 1px solid #000;"></div>
-                    <span style="font-size:10px; font-weight:bold; margin-top: 4px;">📸 สแกนส่งภาพเข้าระบบ LINE OA ร้าน</span>
+                    <span style="font-size:12px; font-weight:bold; margin-top: 4px;">📸 สแกนส่งภาพเข้าระบบ LINE OA ร้าน</span>
                 </div>
             </div>
 
-            <div style="border-top: 2px dashed #000; margin: 40px 0 30px 0; text-align: center; font-size: 12px;">- - - - - - - - - - - - - - ฉีกตามรอยประ - - - - - - - - - - - - - -</div>
+            <div style="border-top: 2px dashed #000; margin: 40px 0 30px 0; text-align: center; font-size: 14px;">- - - - - - - - - - - - - - ฉีกตามรอยประ - - - - - - - - - - - - - -</div>
 
             <!-- สำเนาจริง -->
             <div style="text-align:center; width:100%;">
@@ -597,9 +673,13 @@
 
                 <div id="pNewCustWarningCopy" class="print-warning-box" style="display: none;">(สำเนา) บัญชีอยู่นอกระบบ</div>
                 <hr style="border-top:1px dashed #000; margin:2mm 0;">
-                <table style="width:100%; font-size:13px; border-collapse:collapse; text-align: left;">
+                
+                <!-- เพิ่มฟอนต์ในบิลสั่งพิมพ์ฝั่งสำเนาขึ้นจาก 13px เป็น 15px เพื่อความคมชัดขึ้น -->
+                <table style="width:100%; font-size:15px; border-collapse:collapse; text-align: left;">
                     <tr><td style="padding:2mm 0; width:45%;">เลขที่ใบเสร็จ:</td><td style="text-align:right;" id="pReceiptNoCopy"></td></tr>
-                    <tr><td style="padding:2mm 0;" valign="top">ลูกค้า:</td><td style="text-align:right; font-size: 15px;" id="pCustomerCopy"></td></tr>
+                    <tr><td style="padding:2mm 0;" valign="top">ลูกค้า:</td><td style="text-align:right; font-size: 16px;" id="pCustomerCopy"></td></tr>
+                    <!-- แถวแสดงเบอร์โทรศัพท์บนสลิปสำเนาสั่งพิมพ์ -->
+                    <tr><td style="padding:2mm 0;" valign="top">เบอร์โทร:</td><td style="text-align:right; font-size: 16px;" id="pCustomerPhoneCopy"></td></tr>
                     <tr><td style="padding:2mm 0;">วันที่โอน:</td><td style="text-align:right;" id="pDateCopy"></td></tr>
                     <tr><td style="padding:2mm 0;">บิลเลขที่:</td><td style="text-align:right;" id="pBillCopy"></td></tr>
                     <tr class="print-bolder"><td style="padding:2mm 0;">ธนาคาร:</td><td style="text-align:right;" id="pBankCopy"></td></tr>
@@ -608,12 +688,12 @@
                     <tr class="print-bolder"><td style="padding:3mm 0 1mm 0;">ยอดเงิน:</td><td style="text-align:right;" id="pAmountCopy"></td></tr>
                     <tr class="print-bolder"><td colspan="2" style="text-align:right; padding-bottom:3mm;" id="pAmountTextCopy"></td></tr>
                     <tr><td colspan="2"><hr style="border-top:1px dashed #000; margin:2mm 0;"></td></tr>
-                    <tr><td style="padding:2mm 0;" valign="top">สินค้า/หมายเหตุ:</td><td style="text-align:right; font-size:12px;" id="pRemarkCopy"></td></tr>
-                    <tr><td style="padding:2mm 0;" valign="top">รายละเอียดสลิป:</td><td style="text-align:right; font-size:12px;" id="pSlipCopy"></td></tr>
+                    <tr><td style="padding:2mm 0;" valign="top">สินค้า/หมายเหตุ:</td><td style="text-align:right; font-size:14px;" id="pRemarkCopy"></td></tr>
+                    <tr><td style="padding:2mm 0;" valign="top">รายละเอียดสลิป:</td><td style="text-align:right; font-size:14px;" id="pSlipCopy"></td></tr>
                     <tr><td colspan="2"><hr style="border-top:1px dashed #000; margin:2mm 0;"></td></tr>
-                    <tr style="font-size: 12px;"><td>วันเวลาพิมพ์จริง:</td><td style="text-align:right;" id="pPrintTimeCopy"></td></tr>
+                    <tr style="font-size: 14px;"><td>วันเวลาพิมพ์จริง:</td><td style="text-align:right;" id="pPrintTimeCopy"></td></tr>
                 </table>
-                <table style="width: 100%; margin-top: 30px; text-align: center; font-size: 12px; border-collapse: collapse;">
+                <table style="width: 100%; margin-top: 30px; text-align: center; font-size: 14px; border-collapse: collapse;">
                     <tr>
                         <td style="width: 15%;"></td>
                         <td style="width: 70%; padding-top: 25px; border-top: 1px dashed #000;">..................................................<br>( ผู้รับเงิน/ลูกค้า )</td>
@@ -739,17 +819,16 @@
                 if (error) throw error;
             } catch (err) {
                 console.error("Logout error:", err.message);
-                // ดึงพนักงานกลับไปหน้าเข้าใช้เพื่อความปลอดภัยในกรณีฉุกเฉิน
                 onAuthRequired();
             }
         }
 
-        // ดึงรายชื่อลูกค้า (จากตาราง customers ใน Supabase)
+        // ดึงรายชื่อลูกค้าและฟิลด์เบอร์โทรศัพท์ (จากตาราง customers ใน Supabase)
         async function fetchCustomersFromSupabase() {
             try {
                 let { data, error } = await supabaseClient
                     .from('customers')
-                    .select('name, bank_name, bank_account, bank_account_name')
+                    .select('name, phone, bank_name, bank_account, bank_account_name')
                     .order('name', { ascending: true });
 
                 if (error) throw error;
@@ -806,7 +885,6 @@
             }
 
             items.forEach((tx) => {
-                // แปลงวันเวลาบันทึกเข้าระบบ
                 const regDate = new Date(tx.timestamp);
                 const regDateTimeStr = regDate.toLocaleDateString('th-TH', { year: '2-digit', month: 'short', day: 'numeric' }) + ' ' + regDate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
 
@@ -827,6 +905,9 @@
                     nameBadge = `<span class="badge bg-danger text-white py-1 px-2 me-1 fs-6">ใหม่</span> ${tx.customer_name}`;
                 }
 
+                // สลักเบอร์โทรศัพท์ลงไปใต้ชื่อลูกค้าในตารางสรุปรายงานอย่างลงตัว
+                const displayPhone = tx.customer_phone ? `<br><small class="text-muted"><i class="bi bi-telephone-fill"></i> ${tx.customer_phone}</small>` : '<br><small class="text-muted-light">-</small>';
+
                 // แสดงจำนวนครั้งการพิมพ์
                 const displayPrintCount = tx.print_count || 1;
 
@@ -834,7 +915,7 @@
                 tr.innerHTML = `
                     <td style="font-size: 1.1rem; color: #475569;">${regDateTimeStr}</td>
                     <td class="text-danger fw-bold">${tx.receipt_number}</td>
-                    <td>${nameBadge}</td>
+                    <td>${nameBadge}${displayPhone}</td>
                     <td class="text-end text-success fw-bold fs-5">${parseFloat(tx.amount || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
                     <td style="font-size: 1.1rem;">
                         <span class="badge bg-secondary mb-1">${tx.bank_name || '-'}</span><br>
@@ -870,6 +951,7 @@
                 const matchSearch = 
                     tx.receipt_number.toLowerCase().includes(searchKeyword) ||
                     tx.customer_name.toLowerCase().includes(searchKeyword) ||
+                    (tx.customer_phone && tx.customer_phone.includes(searchKeyword)) ||
                     (tx.created_by && tx.created_by.toLowerCase().includes(searchKeyword)) ||
                     (tx.bank_account && tx.bank_account.includes(searchKeyword));
 
@@ -912,15 +994,12 @@
             if (!url) return '';
             const cleanUrl = url.trim();
             
-            // หากเป็นลิงก์ Direct อยู่แล้ว หรือไม่ใช่ลิงก์ Google Drive ให้ส่งกลับทันที
             if (cleanUrl.includes('lh3.googleusercontent.com') || cleanUrl.includes('drive.google.com/uc')) {
                 return cleanUrl;
             }
 
             let fileId = '';
-            // เงื่อนไขที่ 1: ตรวจจับลิงก์แบบยาว /file/d/FILE_ID/view
             const regLongFormat = /\/file\/d\/([^\/]+)/;
-            // เงื่อนไขที่ 2: ตรวจจับลิงก์แบบ query ?id=FILE_ID
             const regQueryFormat = /[?&]id=([^&]+)/;
 
             let match = cleanUrl.match(regLongFormat);
@@ -933,22 +1012,18 @@
                 }
             }
 
-            // หากสกัดกุญแจสำเร็จ ให้ส่งลิงก์เรียกภาพแบบ Raw Direct ไปใช้งาน
             if (fileId) {
                 return "https://lh3.googleusercontent.com/d/" + fileId;
             }
-            return cleanUrl; // Fallback ป้องกันเว็บพัง
+            return cleanUrl;
         }
 
         // เปิดดูรูปภาพสลิปที่แนบในโมดอลย่อย
         function showAttachmentImage(url, title) {
             document.getElementById('imageModalTitle').innerText = title;
-            
-            // เรียกใช้งานฟังก์ชันแปลงรหัสลิงก์สลิปให้เปลี่ยนเป็น Direct Image
             const directUrl = getDirectGoogleDriveUrl(url);
-            
             document.getElementById('imageModalTarget').src = directUrl;
-            document.getElementById('imageModalDownloadLink').href = url; // ให้ผู้ใช้สามารถกดเปิดแท็บใหม่เพื่อดูภาพขนาดต้นฉบับได้
+            document.getElementById('imageModalDownloadLink').href = url;
             
             if (!imageModalObj) imageModalObj = new bootstrap.Modal(document.getElementById('imageModal'));
             imageModalObj.show();
@@ -981,12 +1056,14 @@
             const finalPrintTimestamp = `${now.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })} ${now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} น.`;
             const formattedAmount = parseFloat(tx.amount).toLocaleString('th-TH', { minimumFractionDigits: 2 }) + ' บาท';
             const thaiBahtText = tx.amount_thai_text || thaiBaht(tx.amount);
+            const customerPhone = tx.customer_phone || '-';
 
             // เซ็ตพิกัดพิมพ์ลงทั้งชุดต้นฉบับและสำเนา
             const ids = ['v', 'p'];
             ids.forEach(prefix => {
                 document.getElementById(`${prefix}ReceiptNo`).innerText = tx.receipt_number;
                 document.getElementById(`${prefix}Customer`).innerText = tx.customer_name;
+                document.getElementById(`${prefix}CustomerPhone`).innerText = customerPhone; // เพิ่มพิกัดลงพรีวิวหลัก
                 document.getElementById(`${prefix}Date`).innerText = formattedDate;
                 document.getElementById(`${prefix}Bill`).innerText = tx.bill_number || '-';
                 document.getElementById(`${prefix}Bank`).innerText = tx.bank_name || '-';
@@ -1003,6 +1080,7 @@
             // สำเนาลง Copy Side พรีวิว
             document.getElementById('vReceiptNoCopy').innerText = tx.receipt_number;
             document.getElementById('vCustomerCopy').innerText = tx.customer_name;
+            document.getElementById('vCustomerPhoneCopy').innerText = customerPhone; // สำเนาเบอร์โทรลงโมดอลพรีวิว
             document.getElementById('vDateCopy').innerText = formattedDate;
             document.getElementById('vBillCopy').innerText = tx.bill_number || '-';
             document.getElementById('vBankCopy').innerText = tx.bank_name || '-';
@@ -1017,6 +1095,7 @@
             // สำเนาจริงฝั่งเครื่องพิมพ์
             document.getElementById('pReceiptNoCopy').innerText = tx.receipt_number;
             document.getElementById('pCustomerCopy').innerText = tx.customer_name;
+            document.getElementById('pCustomerPhoneCopy').innerText = customerPhone; // สำเนาเบอร์โทรลงกระดาษความร้อน
             document.getElementById('pDateCopy').innerText = formattedDate;
             document.getElementById('pBillCopy').innerText = tx.bill_number || '-';
             document.getElementById('pBankCopy').innerText = tx.bank_name || '-';
@@ -1049,13 +1128,170 @@
         }
 
         // =================================================================
+        // 🔮 ส่วนของ Autocomplete Search Logic (ใหม่ - แก้ปัญหาชื่อซ้ำ ค้นหา 200+ รายการ)
+        // =================================================================
+        
+        // ฟังก์ชันล้างค่าตัวแปรเมื่อโหลดลูกค้าเสร็จหรือเปลี่ยนคลังข้อมูล
+        function refreshCustomerDropdown() {
+            const searchInput = document.getElementById('customerSearchInput');
+            if (searchInput) {
+                searchInput.placeholder = `🔍 พิมพ์เพื่อค้นหาจากคลังลูกค้า (${CENTRAL_CUSTOMER_DB.length} รายชื่อ)...`;
+            }
+        }
+
+        // แสดงผล Dropdown ลอย
+        function showCustomerDropdown() {
+            const dropdown = document.getElementById('customerSearchDropdown');
+            dropdown.style.display = 'block';
+            filterCustomerSearch(); // กรองข้อมูลตามที่พิมพ์ค้างไว้ล่าสุดทันที
+        }
+
+        // สลับเปิด/ปิด Dropdown
+        function toggleCustomerDropdown() {
+            const dropdown = document.getElementById('customerSearchDropdown');
+            if (dropdown.style.display === 'block') {
+                dropdown.style.display = 'none';
+            } else {
+                dropdown.style.display = 'block';
+                document.getElementById('customerSearchInput').focus();
+                filterCustomerSearch();
+            }
+        }
+
+        // คัดกรองและวาดเนื้อหาลงกล่อง Autocomplete ค้นหา
+        function filterCustomerSearch() {
+            const keyword = document.getElementById('customerSearchInput').value.toLowerCase().trim();
+            const dropdown = document.getElementById('customerSearchDropdown');
+            dropdown.innerHTML = '';
+
+            // 1. เพิ่มตัวเลือกกรอกรายชื่อใหม่ไว้ที่หัวตารางเสมอเพื่อให้ใช้งานง่าย
+            const newCustBtn = document.createElement('button');
+            newCustBtn.type = 'button';
+            newCustBtn.className = 'search-item d-flex align-items-center justify-content-between text-danger fw-bold';
+            newCustBtn.style.backgroundColor = '#fff5f5';
+            newCustBtn.innerHTML = `
+                <span><i class="bi bi-person-plus-fill me-2"></i>➕ กรอกข้อมูลลูกค้าใหม่เอง (ระบุบัญชีเอง)</span>
+                <span class="badge bg-danger text-white fs-6">คีย์ใหม่</span>
+            `;
+            newCustBtn.onclick = () => selectCustomerItem('NEW');
+            dropdown.appendChild(newCustBtn);
+
+            // 2. กรองข้อมูลหลักจาก CENTRAL_CUSTOMER_DB
+            let filteredList = CENTRAL_CUSTOMER_DB;
+            if (keyword !== '' && !keyword.startsWith('➕')) {
+                filteredList = CENTRAL_CUSTOMER_DB.filter(c => 
+                    c.name.toLowerCase().includes(keyword) ||
+                    (c.phone && c.phone.includes(keyword)) ||
+                    (c.bank_name && c.bank_name.toLowerCase().includes(keyword)) ||
+                    (c.bank_account && c.bank_account.includes(keyword))
+                );
+            }
+
+            if (filteredList.length === 0) {
+                const noResultDiv = document.createElement('div');
+                noResultDiv.className = 'p-3 text-center text-muted fw-bold fs-6';
+                noResultDiv.innerHTML = `<i class="bi bi-exclamation-circle me-1"></i> ไม่พบรายชื่อลูกค้าที่ตรงกับเงื่อนไข`;
+                dropdown.appendChild(noResultDiv);
+            } else {
+                filteredList.forEach((cust) => {
+                    // ค้นหาตำแหน่งดั้งเดิมในฐานข้อมูลกลาง เพื่ออ้างอิงให้ถูกต้องกรณีชื่อซ้ำกัน
+                    const originalIndex = CENTRAL_CUSTOMER_DB.indexOf(cust);
+
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'search-item d-flex flex-column align-items-start';
+                    
+                    let phoneBadge = cust.phone ? `<span class="badge bg-light text-dark border ms-2"><i class="bi bi-telephone-fill"></i> ${cust.phone}</span>` : '';
+                    let bankBadge = cust.bank_name ? `<span class="badge bg-secondary text-white ms-2">${cust.bank_name}</span>` : '';
+
+                    btn.innerHTML = `
+                        <div class="d-flex w-100 justify-content-between align-items-center">
+                            <strong class="text-dark fs-5">${cust.name}</strong>
+                            <div>${phoneBadge}${bankBadge}</div>
+                        </div>
+                        <small class="text-muted mt-1" style="font-size: 0.95rem;">
+                            <i class="bi bi-credit-card-2-front"></i> บัญชี: ${cust.bank_account || '-'} | ชื่อบัญชี: ${cust.bank_account_name || '-'}
+                        </small>
+                    `;
+                    btn.onclick = () => selectCustomerItem(originalIndex);
+                    dropdown.appendChild(btn);
+                });
+            }
+        }
+
+        // ฟังก์ชันสั่งจัดการเลือกรายชื่อมาใช้งานปักฟิลด์
+        function selectCustomerItem(indexValue) {
+            const searchInput = document.getElementById('customerSearchInput');
+            const customerNameInput = document.getElementById('customerName');
+            const customerPhoneInput = document.getElementById('customerPhone');
+            const bankNameInput = document.getElementById('bankName');
+            const bankAccountInput = document.getElementById('bankAccount');
+            const bankAccountNameInput = document.getElementById('bankAccountName');
+            const dropdown = document.getElementById('customerSearchDropdown');
+
+            dropdown.style.display = 'none';
+
+            if (indexValue === 'NEW') {
+                searchInput.value = "➕ เพิ่มรายชื่อลูกค้าใหม่เอง (ระบุบัญชีเอง)";
+                lockFormFields(false);
+                clearFormValues();
+                isNewCustomer = true;
+                showActionAlert('⚠️ คุณกำลังระบุข้อมูลบัญชีโอนด้วยตนเอง กรุณาตรวจสอบให้ละเอียด!', 'warning');
+            } else {
+                lockFormFields(true);
+                const c = CENTRAL_CUSTOMER_DB[parseInt(indexValue)];
+                if (c) {
+                    searchInput.value = c.name;
+                    customerNameInput.value = c.name;
+                    customerPhoneInput.value = c.phone || '';
+                    bankNameInput.value = c.bank_name || '';
+                    bankAccountInput.value = c.bank_account || '';
+                    bankAccountNameInput.value = c.bank_account_name || '';
+                    isNewCustomer = false;
+                    showActionAlert(`📂 โหลดข้อมูลบัญชีของ "${c.name}" เรียบร้อยแล้ว`, 'info');
+                }
+            }
+        }
+
+        // จัดการคลิกที่ว่างนอกระบบเพื่อปิด Dropdown ลอยโดยอัตโนมัติ
+        document.addEventListener('click', function(e) {
+            const dropdown = document.getElementById('customerSearchDropdown');
+            const searchInput = document.getElementById('customerSearchInput');
+            if (dropdown && searchInput) {
+                const parentContainer = searchInput.closest('.position-relative');
+                if (!parentContainer.contains(e.target)) {
+                    dropdown.style.display = 'none';
+                }
+            }
+        });
+
+
+        // =================================================================
         // ส่วนจัดการฟังก์ชันหน้าฟอร์มเดิม
         // =================================================================
+        function lockFormFields(shouldLock) {
+            document.getElementById('customerName').readOnly = shouldLock;
+            document.getElementById('customerPhone').readOnly = shouldLock; // ล็อก/ปลดล็อกเบอร์โทรศัพท์
+            document.getElementById('bankName').readOnly = shouldLock;
+            document.getElementById('bankAccount').readOnly = shouldLock;
+            document.getElementById('bankAccountName').readOnly = shouldLock;
+        }
+
+        function clearFormValues() {
+            document.getElementById('customerName').value = '';
+            document.getElementById('customerPhone').value = ''; // เคลียร์ช่องเบอร์โทรศัพท์
+            document.getElementById('bankName').value = '';
+            document.getElementById('bankAccount').value = '';
+            document.getElementById('bankAccountName').value = '';
+        }
+
+        // ฟังก์ชันสร้างเลขที่ใบเสร็จอัตโนมัติ
         function generateReceiptNo() {
             const now = new Date();
             return `RE-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
         }
 
+        // ฟังก์ชันแปลงตัวเลขเป็นคำอ่านภาษาไทย (บาทถ้วน)
         function thaiBaht(num) {
             if (isNaN(num) || num === null || num === undefined) return "(-ศูนย์บาทถ้วน-)";
             num = parseFloat(num).toFixed(2);
@@ -1088,57 +1324,6 @@
             return `(-${result}-)`;
         }
 
-        function refreshCustomerDropdown() {
-            const select = document.getElementById('customerSelect');
-            select.innerHTML = '<option value="">-- ค้นหาหรือเลือกลูกค้าจากฐานข้อมูล --</option>';
-            select.innerHTML += '<option value="NEW" style="background-color: #fee2e2; font-weight: bold; color: #ef4444;">➕ กรอกข้อมูลลูกค้าใหม่เอง (ระบุบัญชีเอง) ➕</option>';
-            CENTRAL_CUSTOMER_DB.forEach((cust, index) => {
-                select.innerHTML += `<option value="${index}">${cust.name} [${cust.bank_name || '-'}]</option>`;
-            });
-        }
-
-        function loadCustomerInfo() {
-            const indexValue = document.getElementById('customerSelect').value;
-            const customerNameInput = document.getElementById('customerName');
-            const bankNameInput = document.getElementById('bankName');
-            const bankAccountInput = document.getElementById('bankAccount');
-            const bankAccountNameInput = document.getElementById('bankAccountName');
-
-            if (indexValue === 'NEW') {
-                lockFormFields(false);
-                clearFormValues();
-                isNewCustomer = true;
-                showActionAlert('⚠️ คุณกำลังระบุข้อมูลบัญชีโอนด้วยตนเอง กรุณาตรวจสอบให้ละเอียด!', 'warning');
-            } else if (indexValue === '') {
-                lockFormFields(true); clearFormValues(); isNewCustomer = false;
-            } else {
-                lockFormFields(true);
-                const c = CENTRAL_CUSTOMER_DB[parseInt(indexValue)];
-                if (c) {
-                    customerNameInput.value = c.name;
-                    bankNameInput.value = c.bank_name || '';
-                    bankAccountInput.value = c.bank_account || '';
-                    bankAccountNameInput.value = c.bank_account_name || '';
-                    isNewCustomer = false;
-                    showActionAlert(`📂 โหลดข้อมูลบัญชีของ "${c.name}" เรียบร้อยแล้ว`, 'info');
-                }
-            }
-        }
-
-        function lockFormFields(shouldLock) {
-            document.getElementById('customerName').readOnly = shouldLock;
-            document.getElementById('bankName').readOnly = shouldLock;
-            document.getElementById('bankAccount').readOnly = shouldLock;
-            document.getElementById('bankAccountName').readOnly = shouldLock;
-        }
-
-        function clearFormValues() {
-            document.getElementById('customerName').value = '';
-            document.getElementById('bankName').value = '';
-            document.getElementById('bankAccount').value = '';
-            document.getElementById('bankAccountName').value = '';
-        }
-
         function initDateTime() {
             const now = new Date();
             document.getElementById('docDate').valueAsDate = now;
@@ -1159,6 +1344,7 @@
             document.getElementById('pReprintStatusCopy').style.display = 'none';
 
             let customer = document.getElementById('customerName').value.trim();
+            let customerPhone = document.getElementById('customerPhone').value.trim() || '-'; // ดึงค่าเบอร์โทรจากฟอร์ม
             const amount = document.getElementById('amount').value;
             const receiptNo = document.getElementById('receiptNumber').value;
             const docDate = document.getElementById('docDate').value;
@@ -1189,11 +1375,12 @@
             const formattedAmount = parseFloat(amount).toLocaleString('th-TH', { minimumFractionDigits: 2 }) + ' บาท';
             const thaiBahtText = thaiBaht(amount);
 
-            // แมปปิ้งเข้าสู่ Element พรีวิว และ พิมพ์จริงทั้งหมด
+            // แมปปิ้งเข้าสู่ Element พรีวิว และ พิมพ์จริงทั้งหมด (รวมเบอร์โทรศัพท์ลูกค้า)
             const ids = ['v', 'p'];
             ids.forEach(prefix => {
                 document.getElementById(`${prefix}ReceiptNo`).innerText = receiptNo;
                 document.getElementById(`${prefix}Customer`).innerText = displayCustomerName;
+                document.getElementById(`${prefix}CustomerPhone`).innerText = customerPhone; // แมปเบอร์โทรลงสลิป
                 document.getElementById(`${prefix}Date`).innerText = formattedDate;
                 document.getElementById(`${prefix}Bill`).innerText = billNo;
                 document.getElementById(`${prefix}Bank`).innerText = bankName;
@@ -1210,6 +1397,7 @@
             // ทำการสำเนาลง Copy Side ฝั่งโมดอลพรีวิวด้วย
             document.getElementById('vReceiptNoCopy').innerText = receiptNo;
             document.getElementById('vCustomerCopy').innerText = displayCustomerName;
+            document.getElementById('vCustomerPhoneCopy').innerText = customerPhone; // สำเนาเบอร์โทรลงโมดอลพรีวิว
             document.getElementById('vDateCopy').innerText = formattedDate;
             document.getElementById('vBillCopy').innerText = billNo;
             document.getElementById('vBankCopy').innerText = bankName;
@@ -1224,6 +1412,7 @@
             // ผูกกับสำเนาจริงพอร์ตสั่งพิมพ์
             document.getElementById('pReceiptNoCopy').innerText = receiptNo;
             document.getElementById('pCustomerCopy').innerText = displayCustomerName;
+            document.getElementById('pCustomerPhoneCopy').innerText = customerPhone; // สำเนาเบอร์โทรลงกระดาษความร้อน
             document.getElementById('pDateCopy').innerText = formattedDate;
             document.getElementById('pBillCopy').innerText = billNo;
             document.getElementById('pBankCopy').innerText = bankName;
@@ -1250,6 +1439,7 @@
         // บันทึกข้อมูลและสั่งพิมพ์จริง
         async function confirmPrintAndSave() {
             const customerName = document.getElementById('customerName').value.trim();
+            const customerPhoneVal = document.getElementById('customerPhone').value.trim(); // บันทึกค่าเบอร์โทรศัพท์
             const amount = parseFloat(document.getElementById('amount').value);
             const docDate = document.getElementById('docDate').value;
             const docTime = document.getElementById('docTime').value;
@@ -1263,12 +1453,13 @@
 
             try {
                 if (currentAction === 'CREATE') {
-                    // กรณีที่เป็น "ลูกค้าใหม่" ให้ทำการสร้างรายชื่อลงตาราง customers อัตโนมัติ (Upsert กันซ้ำ)
+                    // กรณีที่เป็น "ลูกค้าใหม่" ให้ทำการสร้างรายชื่อลงตาราง customers อัตโนมัติ
                     if (isNewCustomer) {
                         const { error: custError } = await supabaseClient
                             .from('customers')
                             .upsert({ 
                                 name: customerName, 
+                                phone: customerPhoneVal, // เซฟเบอร์โทรลงคลังรายชื่อลูกค้า
                                 bank_name: bankNameVal, 
                                 bank_account: bankAccVal, 
                                 bank_account_name: bankAccNameVal 
@@ -1277,13 +1468,14 @@
                         if (custError) console.error("Auto customer register log:", custError.message);
                     }
 
-                    // การบันทึกข้อมูลโอนลงตารางหลักหลัก transactions และจดบันทึกครั้งที่พิมพ์เริ่มต้นเป็น 1
+                    // การบันทึกข้อมูลโอนลงตารางหลัก transactions (เพิ่มคอลัมน์ customer_phone)
                     const { error: txError } = await supabaseClient
                         .from('transactions')
                         .insert([{
                             receipt_number: receiptNo,
                             is_new_customer: isNewCustomer ? "ใช่ (พนักงานคีย์เองที่หน้าจอ)" : "ไม่ใช่ (เลือกจากฐานข้อมูล)",
                             customer_name: isNewCustomer ? `${customerName} (เพิ่มใหม่)` : customerName,
+                            customer_phone: customerPhoneVal, // เซฟเบอร์โทรลงรายการประวัติการโอนชำระ
                             bank_name: bankNameVal,
                             bank_account: bankAccVal,
                             bank_account_name: bankAccNameVal,
@@ -1333,14 +1525,14 @@
 
         function showActionAlert(msg, type) {
             const container = document.getElementById('alertContainer');
-            container.innerHTML = `<div class="alert alert-${type} border-2 p-3" role="alert" style="font-size: 1.15rem; font-weight:700;">${msg}</div>`;
+            container.innerHTML = `<div class="alert alert-${type} border-2 p-3" role="alert" style="font-size: 1.11rem; font-weight:700;">${msg}</div>`;
             container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         function clearForm() {
             document.getElementById('paymentForm').reset();
             initDateTime();
-            document.getElementById('customerSelect').value = '';
+            document.getElementById('customerSearchInput').value = '';
             lockFormFields(true);
             isNewCustomer = false;
         }
