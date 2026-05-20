@@ -9,6 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght=400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap Icons for premium UI look -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     
     <!-- QRCode.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -27,7 +29,7 @@
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             color: white;
             padding: 30px 0;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             border-bottom: 6px solid #ef4444;
             box-shadow: 0 4px 20px rgba(0,0,0,0.15);
         }
@@ -117,6 +119,32 @@
             background-color: #fee2e2;
             color: #b91c1c;
         }
+        
+        /* สไตล์ตารางรายงานเพิ่มเติม */
+        .nav-pills .nav-link {
+            border-radius: 12px;
+            color: #475569;
+            background-color: #f1f5f9;
+            transition: all 0.2s;
+        }
+        .nav-pills .nav-link.active {
+            background-color: #ef4444;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+        }
+        .report-table th {
+            background-color: #f8fafc;
+            color: #1e293b;
+            font-weight: 800;
+            font-size: 1.1rem;
+            border-bottom: 3px solid #cbd5e1;
+        }
+        .report-table td {
+            font-size: 1.15rem;
+            vertical-align: middle;
+            font-weight: 600;
+        }
+        
         #printArea { display: none; }
 
         @media print {
@@ -144,99 +172,191 @@
     </header>
 
     <div class="container pb-5">
-        <div class="row justify-content-center">
+        <!-- แถบเมนูด้านบนสลับโหมดการทำงาน -->
+        <div class="row justify-content-center mb-4">
             <div class="col-lg-9 col-xl-8">
-                <div class="card">
-                    <div class="card-header-custom bg-light">รายละเอียดธุรกรรมจ่ายเงินโอน</div>
-                    <div class="card-body p-4">
-                        <form id="paymentForm">
-                            <div class="row g-3">
-                                <div class="col-md-12">
-                                    <label class="form-label" for="customerSelect">เลือกลูกค้าในระบบ</label>
-                                    <select id="customerSelect" class="form-select form-select-lg border-primary text-primary" style="font-size:1.35rem;" onchange="loadCustomerInfo()" required>
-                                        <option value="">กำลังเชื่อมต่อฐานข้อมูล Supabase...</option>
-                                    </select>
-                                </div>
+                <ul class="nav nav-pills nav-justified gap-2 p-1 bg-white rounded-3 shadow-sm" id="mainTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active py-3 fs-4 fw-bold" id="form-tab" data-bs-toggle="tab" data-bs-target="#form-content" type="button" role="tab" aria-controls="form-content" aria-selected="true">
+                            <i class="bi bi-pencil-square me-2"></i>📝 บันทึกจ่ายเงินโอน
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link py-3 fs-4 fw-bold" id="report-tab" data-bs-toggle="tab" data-bs-target="#report-content" type="button" role="tab" aria-controls="report-content" aria-selected="false" onclick="fetchTransactionsReport()">
+                            <i class="bi bi-file-earmark-bar-graph me-2"></i>📊 รายงานการโอนย้อนหลัง
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
 
-                                <div class="col-md-6">
-                                    <label class="form-label text-danger">เลขที่ใบเสร็จเงินโอน (สร้างอัตโนมัติ)</label>
-                                    <input type="text" class="form-control text-danger fw-bold border-danger" id="receiptNumber" readonly required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">ชื่อลูกค้า / ร้านค้า</label>
-                                    <input type="text" class="form-control" id="customerName" placeholder="เลือกรายชื่อเพื่อดึงข้อมูล" readonly required>
-                                </div>
+        <!-- กล่องเนื้อหาแยกตามเมนู -->
+        <div class="tab-content" id="mainTabContent">
+            
+            <!-- เมนูที่ 1: หน้าฟอร์มบันทึกข้อมูลโอนเงิน (ของเดิม) -->
+            <div class="tab-pane fade show active" id="form-content" role="tabpanel" aria-labelledby="form-tab">
+                <div class="row justify-content-center">
+                    <div class="col-lg-9 col-xl-8">
+                        <div class="card">
+                            <div class="card-header-custom bg-light">รายละเอียดธุรกรรมจ่ายเงินโอน</div>
+                            <div class="card-body p-4">
+                                <form id="paymentForm">
+                                    <div class="row g-3">
+                                        <div class="col-md-12">
+                                            <label class="form-label" for="customerSelect">เลือกลูกค้าในระบบ</label>
+                                            <select id="customerSelect" class="form-select form-select-lg border-primary text-primary" style="font-size:1.35rem;" onchange="loadCustomerInfo()" required>
+                                                <option value="">กำลังเชื่อมต่อฐานข้อมูล Supabase...</option>
+                                            </select>
+                                        </div>
 
-                                <div class="col-md-4">
-                                    <label class="form-label">วันที่โอน</label>
-                                    <input type="date" class="form-control" id="docDate" required>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">เวลาโอน</label>
-                                    <input type="time" class="form-control" id="docTime" required>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">เลขที่บิล / ใบสั่งสินค้า</label>
-                                    <input type="text" class="form-control" id="billNumber" placeholder="ระบุเลขที่บิล" required>
-                                </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label text-danger">เลขที่ใบเสร็จเงินโอน (สร้างอัตโนมัติ)</label>
+                                            <input type="text" class="form-control text-danger fw-bold border-danger" id="receiptNumber" readonly required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">ชื่อลูกค้า / ร้านค้า</label>
+                                            <input type="text" class="form-control" id="customerName" placeholder="เลือกรายชื่อเพื่อดึงข้อมูล" readonly required>
+                                        </div>
 
-                                <div class="col-md-4">
-                                    <label class="form-label">ธนาคารปลายทาง</label>
-                                    <input type="text" class="form-control" id="bankName" placeholder="ระบุธนาคารผู้รับโอน" readonly required>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">เลขที่บัญชี</label>
-                                    <input type="text" class="form-control" id="bankAccount" placeholder="ระบุเลขที่บัญชี" readonly required>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">ชื่อบัญชีปลายทาง</label>
-                                    <input type="text" class="form-control" id="bankAccountName" placeholder="ระบุชื่อเจ้าของบัญชี" readonly>
-                                </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">วันที่โอน</label>
+                                            <input type="date" class="form-control" id="docDate" required>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">เวลาโอน</label>
+                                            <input type="time" class="form-control" id="docTime" required>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">เลขที่บิล / ใบสั่งสินค้า</label>
+                                            <input type="text" class="form-control" id="billNumber" placeholder="ระบุเลขที่บิล" required>
+                                        </div>
 
-                                <div class="col-md-12">
-                                    <div class="p-4 bg-light rounded-4 border border-dark border-2">
-                                        <div class="row align-items-center">
-                                            <div class="col-md-6">
-                                                <h5 class="fw-bold mb-1 text-primary" style="font-size: 1.4rem;">จำนวนเงินโอนชำระจริง</h5>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="input-group">
-                                                    <input type="number" class="form-control form-control-lg text-end fw-bold text-success fs-1" id="amount" step="0.01" min="0.01" placeholder="0.00" required>
-                                                    <span class="input-group-text fw-bold fs-3">บาท</span>
+                                        <div class="col-md-4">
+                                            <label class="form-label">ธนาคารปลายทาง</label>
+                                            <input type="text" class="form-control" id="bankName" placeholder="ระบุธนาคารผู้รับโอน" readonly required>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">เลขที่บัญชี</label>
+                                            <input type="text" class="form-control" id="bankAccount" placeholder="ระบุเลขที่บัญชี" readonly required>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">ชื่อบัญชีปลายทาง</label>
+                                            <input type="text" class="form-control" id="bankAccountName" placeholder="ระบุชื่อเจ้าของบัญชี" readonly>
+                                        </div>
+
+                                        <div class="col-md-12">
+                                            <div class="p-4 bg-light rounded-4 border border-dark border-2">
+                                                <div class="row align-items-center">
+                                                    <div class="col-md-6">
+                                                        <h5 class="fw-bold mb-1 text-primary" style="font-size: 1.4rem;">จำนวนเงินโอนชำระจริง</h5>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="input-group">
+                                                            <input type="number" class="form-control form-control-lg text-end fw-bold text-success fs-1" id="amount" step="0.01" min="0.01" placeholder="0.00" required>
+                                                            <span class="input-group-text fw-bold fs-3">บาท</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
+
+                                        <div class="col-md-6">
+                                            <label class="form-label">ข้อความอ้างอิงสลิปโอนเงิน</label>
+                                            <textarea class="form-control" id="slipDetails" rows="2" placeholder="รหัสอ้างอิงหรือข้อมูลอ้างอิงสลิป"></textarea>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">รายการสินค้า / หมายเหตุเพิ่มเติม</label>
+                                            <textarea class="form-control" id="itemsRemark" rows="2" placeholder="รายละเอียดรายการรับซื้อหรือหมายเหตุสินค้า"></textarea>
+                                        </div>
+
+                                        <div class="col-md-12">
+                                            <label class="form-label">ชื่อผู้บันทึกระบบ</label>
+                                            <input type="text" class="form-control form-control-lg fw-bold" id="createdBy" placeholder="ระบุชื่อผู้ดำเนินการ" required>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div class="col-md-6">
-                                    <label class="form-label">ข้อความอ้างอิงสลิปโอนเงิน</label>
-                                    <textarea class="form-control" id="slipDetails" rows="2" placeholder="รหัสอ้างอิงหรือข้อมูลอ้างอิงสลิป"></textarea>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">รายการสินค้า / หมายเหตุเพิ่มเติม</label>
-                                    <textarea class="form-control" id="itemsRemark" rows="2" placeholder="รายละเอียดรายการรับซื้อหรือหมายเหตุสินค้า"></textarea>
-                                </div>
-
-                                <div class="col-md-12">
-                                    <label class="form-label">ชื่อผู้บันทึกระบบ</label>
-                                    <input type="text" class="form-control form-control-lg fw-bold" id="createdBy" placeholder="ระบุชื่อผู้ดำเนินการ" required>
-                                </div>
+                                    <div class="d-flex flex-wrap justify-content-between gap-3 mt-4 pt-4 border-top">
+                                        <button type="button" class="btn btn-lg btn-outline-secondary px-4 py-3" onclick="clearForm()">ล้างข้อมูลฟอร์ม</button>
+                                        <button type="submit" class="btn btn-lg btn-danger px-5 py-3 flex-fill fs-3 fw-bold">ตรวจสอบสลิปก่อนพิมพ์ & บันทึก</button>
+                                    </div>
+                                </form>
+                                <div id="alertContainer" class="mt-3"></div>
                             </div>
-
-                            <div class="d-flex flex-wrap justify-content-between gap-3 mt-4 pt-4 border-top">
-                                <button type="button" class="btn btn-lg btn-outline-secondary px-4 py-3" onclick="clearForm()">ล้างข้อมูลฟอร์ม</button>
-                                <button type="submit" class="btn btn-lg btn-danger px-5 py-3 flex-fill fs-3 fw-bold">ตรวจสอบสลิปก่อนพิมพ์ & บันทึก</button>
-                            </div>
-                        </form>
-                        <div id="alertContainer" class="mt-3"></div>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- เมนูที่ 2: หน้าตารางสรุปรายงานธุรกรรมโอนย้อนหลัง -->
+            <div class="tab-pane fade" id="report-content" role="tabpanel" aria-labelledby="report-tab">
+                <div class="row justify-content-center">
+                    <div class="col-lg-12">
+                        <div class="card">
+                            <div class="card-header-custom bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <span><i class="bi bi-table text-danger me-2"></i>สรุปรายงานการโอนเงิน (ดึงเรียลไทม์จาก Supabase)</span>
+                                <button type="button" class="btn btn-sm btn-outline-primary px-3 py-2 fs-6" onclick="fetchTransactionsReport()">
+                                    <i class="bi bi-arrow-clockwise"></i> รีเฟรชข้อมูลล่าสุด
+                                </button>
+                            </div>
+                            <div class="card-body p-4">
+                                <!-- ตัวค้นหาและฟิลเตอร์รายการรายงาน -->
+                                <div class="row g-2 mb-4">
+                                    <div class="col-md-5">
+                                        <label class="form-label fs-6 mb-1">ค้นหาด่วน</label>
+                                        <input type="text" id="reportSearch" class="form-control py-2 fs-6" placeholder="พิมพ์เลขใบเสร็จ, ชื่อลูกค้า, หรือผู้บันทึก..." onkeyup="filterReportTable()">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label fs-6 mb-1">ตั้งแต่วันที่</label>
+                                        <input type="date" id="reportStartDate" class="form-control py-2 fs-6" onchange="filterReportTable()">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label fs-6 mb-1">ถึงวันที่</label>
+                                        <input type="date" id="reportEndDate" class="form-control py-2 fs-6" onchange="filterReportTable()">
+                                    </div>
+                                    <div class="col-md-1 d-flex align-items-end">
+                                        <button class="btn btn-outline-secondary w-full py-2 fs-6 text-center px-1" title="ล้างค่าฟิลเตอร์" onclick="clearReportFilters()">
+                                            <i class="bi bi-trash3"></i> ล้าง
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- สปินเนอร์ตอนกำลังโหลดข้อมูลจากฐานข้อมูล -->
+                                <div id="reportSpinner" class="text-center py-5">
+                                    <div class="spinner-border text-danger" style="width: 3rem; height: 3rem;" role="status"></div>
+                                    <h5 class="mt-3 fw-bold text-muted">กำลังค้นหารายชื่อประวัติธุรกรรมจากหลังบ้าน...</h5>
+                                </div>
+
+                                <!-- ตัวตารางแสดงผลรายงานข้อมูล -->
+                                <div class="table-responsive" id="reportTableArea" style="display: none;">
+                                    <table class="table table-bordered table-striped table-hover report-table align-middle">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 14%;">วันเวลาทำรายการ</th>
+                                                <th style="width: 14%;">เลขที่ใบเสร็จ</th>
+                                                <th style="width: 14%;">ชื่อลูกค้า / ร้านค้า</th>
+                                                <th style="width: 11%;" class="text-end">ยอดเงินโอน</th>
+                                                <th style="width: 14%;">บัญชีปลายทาง</th>
+                                                <th style="width: 9%;">พิมพ์ (ครั้ง)</th>
+                                                <th style="width: 9%;">ผู้บันทึก</th>
+                                                <th style="width: 11%;">เอกสารแนบจาก LINE</th>
+                                                <th style="width: 10%;" class="text-center">จัดการ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="reportTableBody">
+                                            <!-- ข้อมูลจะถูกเขียนขึ้นอัตโนมัติจากโค้ด JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
-    <!-- MODAL PREVIEW -->
+    <!-- MODAL PREVIEW (สำหรับแสดงผลสลิปก่อนพิมพ์ / สั่งพิมพ์ซ้ำ) -->
     <div class="modal fade" id="previewModal" tabindex="-1" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-centered modal-md">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
@@ -253,6 +373,12 @@
                             <div class="preview-large-title">เงินโอน</div>
                             <small class="text-muted fw-bold" style="font-size: 0.95rem;">บจก. รับซื้อสินค้าและบริการ</small>
                         </div>
+                        
+                        <!-- ช่องสถานะแสดงการพิมพ์ซ้ำสำหรับใบเสร็จต้นฉบับพรีวิว -->
+                        <div id="vReprintStatus" class="text-center fw-bold text-danger my-1" style="display: none; font-size: 1.15rem; border: 1px solid #dc3545; padding: 2px; background-color: #fff5f5;">
+                            <i class="bi bi-printer"></i> [ พิมพ์ซ้ำ ] ครั้งที่ <span id="vReprintCount">1</span>
+                        </div>
+
                         <div class="preview-dashed-line"></div>
                         <table>
                             <tr class="fw-bold text-danger"><td style="width: 45%;">เลขที่ใบเสร็จ:</td><td class="text-end text-break" id="vReceiptNo">-</td></tr>
@@ -295,6 +421,12 @@
                             <div class="preview-large-title">เงินโอน</div>
                             <small class="text-muted fw-bold" style="font-size: 0.95rem;">บจก. รับซื้อสินค้าและบริการ</small>
                         </div>
+
+                        <!-- ช่องสถานะแสดงการพิมพ์ซ้ำสำหรับสำเนาลูกค้าพรีวิว -->
+                        <div id="vReprintStatusCopy" class="text-center fw-bold text-danger my-1" style="display: none; font-size: 1.15rem; border: 1px solid #dc3545; padding: 2px; background-color: #fff5f5;">
+                            <i class="bi bi-printer"></i> [ พิมพ์ซ้ำ ] ครั้งที่ <span id="vReprintCountCopy">1</span>
+                        </div>
+
                         <div class="preview-dashed-line"></div>
                         <table>
                             <tr class="fw-bold text-danger"><td style="width: 45%;">เลขที่ใบเสร็จ:</td><td class="text-end text-break" id="vReceiptNoCopy">-</td></tr>
@@ -330,6 +462,21 @@
         </div>
     </div>
 
+    <!-- MODAL VIEW IMAGE (สำหรับใช้แสดงผลดูรูปสลิปและรูปใบเสร็จโดยไม่ต้องเปิดแท็บใหม่) -->
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                <div class="modal-header bg-dark text-white py-3" style="border-radius: 16px 16px 0 0;">
+                    <h5 class="modal-title fw-bold" id="imageModalTitle">รูปสลิป / รูปใบเสร็จจาก LINE OA</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center bg-secondary p-2">
+                    <img id="imageModalTarget" src="" class="img-fluid rounded shadow" style="max-height: 75vh;" alt="ภาพหลักฐานแนบ">
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- PRINT AREA -->
     <div id="printArea">
         <div style="width:80mm; box-sizing:border-box;">
@@ -338,6 +485,12 @@
                 <div style="font-size: 14px; border: 1px solid #000; padding: 2px; margin-bottom: 3mm; text-align: center;">(ต้นฉบับสำหรับบริษัท)</div>
                 <div class="print-large-title">เงินโอน</div>
                 <div style="font-size:13px; margin-bottom:3mm;">บจก. รับซื้อสินค้าและบริการ</div>
+                
+                <!-- ช่องสถานะแสดงการพิมพ์ซ้ำสำหรับกระดาษสลิปต้นฉบับจริง -->
+                <div id="pReprintStatus" style="display: none; font-weight: 800; color: #000; text-align: center; font-size: 16px; margin: 2mm 0; border: 1px solid #000; padding: 1mm;">
+                    [ พิมพ์ซ้ำ ] พิมพ์ครั้งที่ <span id="pReprintCount">1</span>
+                </div>
+
                 <div id="pNewCustWarning" class="print-warning-box" style="display: none;">(เพิ่มใหม่) บัญชีอยู่นอกระบบ</div>
                 <hr style="border-top:1px dashed #000; margin:2mm 0;">
                 <table style="width:100%; font-size:13px; border-collapse:collapse; text-align: left;">
@@ -376,6 +529,12 @@
                 <div style="font-size: 14px; border: 1px solid #000; padding: 2px; margin-bottom: 3mm; text-align: center;">(สำเนาสำหรับลูกค้า)</div>
                 <div class="print-large-title">เงินโอน</div>
                 <div style="font-size:13px; margin-bottom:3mm;">บจก. รับซื้อสินค้าและบริการ</div>
+                
+                <!-- ช่องสถานะแสดงการพิมพ์ซ้ำสำหรับกระดาษสำเนาลูกค้าจริง -->
+                <div id="pReprintStatusCopy" style="display: none; font-weight: 800; color: #000; text-align: center; font-size: 16px; margin: 2mm 0; border: 1px solid #000; padding: 1mm;">
+                    [ พิมพ์ซ้ำ ] พิมพ์ครั้งที่ <span id="pReprintCountCopy">1</span>
+                </div>
+
                 <div id="pNewCustWarningCopy" class="print-warning-box" style="display: none;">(สำเนา) บัญชีอยู่นอกระบบ</div>
                 <hr style="border-top:1px dashed #000; margin:2mm 0;">
                 <table style="width:100%; font-size:13px; border-collapse:collapse; text-align: left;">
@@ -412,12 +571,18 @@
         const SUPABASE_URL = "https://botegyznlpltwrrepdeq.supabase.co";
         const SUPABASE_KEY = "sb_publishable_gCCJxJnjeqoC01JbqM3MHA_PTdvtVZR";
         
-        // แก้ไขสัญกรณ์ชื่อตัวแปรย่อยจาก supabase เป็น supabaseClient เพื่อป้องกัน SyntaxError จากการตั้งชื่อซ้ำกับ Global Object ของไลบรารี
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let CENTRAL_CUSTOMER_DB = [];
+        let CENTRAL_TRANSACTIONS_REPORT = []; // ประวัติธุรกรรมที่ดึงจาก Supabase
         let isNewCustomer = false;
         let previewModalObj = null;
+        let imageModalObj = null;
+
+        // ตัวแปรเก็บสถานะการทำงานเพื่อแยกกระบวนการพิมพ์ใหม่ กับการพิมพ์ซ้ำ
+        let currentAction = 'CREATE'; // 'CREATE' หรือ 'REPRINT'
+        let currentTxId = null;        // ไอดีของธุรกรรมที่ถูกเลือกขึ้นมาพิมพ์ซ้ำ
+        let reprintCountToSave = 1;    // ตัวเลขจำนวนครั้งการพิมพ์เพื่อบันทึกทับลง Supabase
 
         // ดึงรายชื่อลูกค้า (จากตาราง customers ใน Supabase)
         async function fetchCustomersFromSupabase() {
@@ -438,6 +603,254 @@
             }
         }
 
+        // 📊 ดึงรายงานรายการโอนเงินทั้งหมดมาแสดงผลในตารางย้อนหลัง
+        async function fetchTransactionsReport() {
+            const spinner = document.getElementById('reportSpinner');
+            const tableArea = document.getElementById('reportTableArea');
+            const tbody = document.getElementById('reportTableBody');
+
+            spinner.style.display = 'block';
+            tableArea.style.display = 'none';
+            tbody.innerHTML = '';
+
+            try {
+                // คิวรีข้อมูลเรียงตามวันเวลาจากล่าสุดไปหาอดีต
+                let { data, error } = await supabaseClient
+                    .from('transactions')
+                    .select('*')
+                    .order('timestamp', { ascending: false });
+
+                if (error) throw error;
+
+                CENTRAL_TRANSACTIONS_REPORT = data || [];
+                renderReportTable(CENTRAL_TRANSACTIONS_REPORT);
+                
+                spinner.style.display = 'none';
+                tableArea.style.display = 'block';
+            } catch (err) {
+                console.error("Error fetching transactions:", err);
+                spinner.style.display = 'none';
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger py-4 fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> ไม่สามารถดึงรายงานได้: ${err.message}</td></tr>`;
+                tableArea.style.display = 'block';
+            }
+        }
+
+        // วาดเนื้อหาแถวตารางรายงาน
+        function renderReportTable(items) {
+            const tbody = document.getElementById('reportTableBody');
+            tbody.innerHTML = '';
+
+            if (items.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">ไม่พบข้อมูลประวัติธุรกรรมใดๆ ในระบบขณะนี้</td></tr>`;
+                return;
+            }
+
+            items.forEach((tx) => {
+                // แปลงวันเวลาบันทึกเข้าระบบ
+                const regDate = new Date(tx.timestamp);
+                const regDateTimeStr = regDate.toLocaleDateString('th-TH', { year: '2-digit', month: 'short', day: 'numeric' }) + ' ' + regDate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+
+                // การตรวจสอบสถานะภาพของแนบสลิป/ใบเสร็จ
+                let slipBtn = `<span class="badge bg-warning text-dark py-2 px-3 fw-bold fs-6 w-full mb-1"><i class="bi bi-clock"></i> รอรูปสลิป</span>`;
+                if (tx.slip_image_url && tx.slip_image_url.trim() !== '') {
+                    slipBtn = `<button class="btn btn-sm btn-success py-1 px-2 fs-6 w-full mb-1 text-white" onclick="showAttachmentImage('${tx.slip_image_url}', 'รูปสลิปใบโอนชำระเงิน : ${tx.receipt_number}')"><i class="bi bi-file-image"></i> เปิดดูสลิป</button>`;
+                }
+
+                let receiptBtn = `<span class="badge bg-warning text-dark py-2 px-3 fw-bold fs-6 w-full"><i class="bi bi-clock"></i> รอรูปรับซื้อ</span>`;
+                if (tx.receipt_image_url && tx.receipt_image_url.trim() !== '') {
+                    receiptBtn = `<button class="btn btn-sm btn-info py-1 px-2 fs-6 w-full text-white" onclick="showAttachmentImage('${tx.receipt_image_url}', 'รูปภาพใบเสร็จรับซื้อ : ${tx.receipt_number}')"><i class="bi bi-file-image"></i> เปิดดูใบเสร็จ</button>`;
+                }
+
+                // สลักรายชื่อใหม่ให้ออกมาเด่นชัด
+                let nameBadge = tx.customer_name;
+                if (tx.is_new_customer && tx.is_new_customer.indexOf("ใช่") !== -1) {
+                    nameBadge = `<span class="badge bg-danger text-white py-1 px-2 me-1 fs-6">ใหม่</span> ${tx.customer_name}`;
+                }
+
+                // แสดงจำนวนครั้งการพิมพ์
+                const displayPrintCount = tx.print_count || 1;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-size: 1.1rem; color: #475569;">${regDateTimeStr}</td>
+                    <td class="text-danger fw-bold">${tx.receipt_number}</td>
+                    <td>${nameBadge}</td>
+                    <td class="text-end text-success fw-bold fs-5">${parseFloat(tx.amount || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
+                    <td style="font-size: 1.1rem;">
+                        <span class="badge bg-secondary mb-1">${tx.bank_name || '-'}</span><br>
+                        <span class="text-break">${tx.bank_account || '-'}</span><br>
+                        <span class="text-muted text-break">${tx.bank_account_name || '-'}</span>
+                    </td>
+                    <td class="text-center"><span class="badge bg-dark fs-6">${displayPrintCount} ครั้ง</span></td>
+                    <td class="text-muted" style="font-size: 1.1rem;">${tx.created_by || '-'}</td>
+                    <td>
+                        <div class="d-flex flex-column">
+                            ${slipBtn}
+                            ${receiptBtn}
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <button class="btn btn-outline-danger btn-sm w-full py-2 fs-6" onclick="reprintFromReport('${tx.id}')">
+                            <i class="bi bi-printer-fill"></i> พิมพ์ซ้ำ
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // คัดกรอง ค้นหาตามช่องกรอกข้อมูลหรือวันที่
+        function filterReportTable() {
+            const searchKeyword = document.getElementById('reportSearch').value.toLowerCase().trim();
+            const startDateVal = document.getElementById('reportStartDate').value;
+            const endDateVal = document.getElementById('reportEndDate').value;
+
+            const filteredData = CENTRAL_TRANSACTIONS_REPORT.filter((tx) => {
+                // 1. ตรวจสอบเงื่อนไขข้อความค้นหา (Search Box)
+                const matchSearch = 
+                    tx.receipt_number.toLowerCase().includes(searchKeyword) ||
+                    tx.customer_name.toLowerCase().includes(searchKeyword) ||
+                    (tx.created_by && tx.created_by.toLowerCase().includes(searchKeyword)) ||
+                    (tx.bank_account && tx.bank_account.includes(searchKeyword));
+
+                // 2. ตรวจสอบเงื่อนไขฟิลเตอร์ตามวันเวลา
+                let matchDate = true;
+                if (tx.timestamp) {
+                    const txDate = new Date(tx.timestamp);
+                    txDate.setHours(0, 0, 0, 0); // รีเซ็ตเวลาเพื่อเทียบเฉพาะวันเดือนปี
+
+                    if (startDateVal) {
+                        const startDate = new Date(startDateVal);
+                        startDate.setHours(0,0,0,0);
+                        if (txDate < startDate) matchDate = false;
+                    }
+                    if (endDateVal) {
+                        const endDate = new Date(endDateVal);
+                        endDate.setHours(0,0,0,0);
+                        if (txDate > endDate) matchDate = false;
+                    }
+                }
+
+                return matchSearch && matchDate;
+            });
+
+            renderReportTable(filteredData);
+        }
+
+        // ปุ่มล้างค่าฟิลเตอร์รายงาน
+        function clearReportFilters() {
+            document.getElementById('reportSearch').value = '';
+            document.getElementById('reportStartDate').value = '';
+            document.getElementById('reportEndDate').value = '';
+            renderReportTable(CENTRAL_TRANSACTIONS_REPORT);
+        }
+
+        // เปิดดูรูปภาพสลิปที่แนบในโมดอลย่อย
+        function showAttachmentImage(url, title) {
+            document.getElementById('imageModalTitle').innerText = title;
+            document.getElementById('imageModalTarget').src = url;
+            
+            if (!imageModalObj) imageModalObj = new bootstrap.Modal(document.getElementById('imageModal'));
+            imageModalObj.show();
+        }
+
+        // ดึงรายการประวัติตัวเดิมกลับมากางในฟอร์มเพื่อสั่งพิมพ์ซ้ำและเก็บสถิติ
+        function reprintFromReport(txId) {
+            const tx = CENTRAL_TRANSACTIONS_REPORT.find(t => t.id === txId);
+            if (!tx) return;
+
+            // ตั้งสถานะการทำงานเป็น REPRINT
+            currentAction = 'REPRINT';
+            currentTxId = txId;
+            reprintCountToSave = (tx.print_count || 1) + 1; // นำค่าเดิมมาบวกเพิ่ม 1 ครั้ง
+
+            // แสดงส่วนเตือนพิมพ์ซ้ำทั้งหน้าพรีวิวและเครื่องพิมพ์จริง
+            document.getElementById('vReprintStatus').style.display = 'block';
+            document.getElementById('vReprintCount').innerText = reprintCountToSave;
+            document.getElementById('vReprintStatusCopy').style.display = 'block';
+            document.getElementById('vReprintCountCopy').innerText = reprintCountToSave;
+
+            document.getElementById('pReprintStatus').style.display = 'block';
+            document.getElementById('pReprintCount').innerText = reprintCountToSave;
+            document.getElementById('pReprintStatusCopy').style.display = 'block';
+            document.getElementById('pReprintCountCopy').innerText = reprintCountToSave;
+
+            // นำข้อมูลธุรกรรมเดิมมาปักลงในช่องต่าง ๆ ของแท็บพิมพ์พรีวิว
+            const formattedDate = tx.transfer_date_time || '-';
+            const now = new Date();
+            const finalPrintTimestamp = `${now.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })} ${now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} น.`;
+            const formattedAmount = parseFloat(tx.amount).toLocaleString('th-TH', { minimumFractionDigits: 2 }) + ' บาท';
+            const thaiBahtText = tx.amount_thai_text || thaiBaht(tx.amount);
+
+            // เซ็ตพิกัดพิมพ์ลงทั้งชุดต้นฉบับและสำเนา
+            const ids = ['v', 'p'];
+            ids.forEach(prefix => {
+                document.getElementById(`${prefix}ReceiptNo`).innerText = tx.receipt_number;
+                document.getElementById(`${prefix}Customer`).innerText = tx.customer_name;
+                document.getElementById(`${prefix}Date`).innerText = formattedDate;
+                document.getElementById(`${prefix}Bill`).innerText = tx.bill_number || '-';
+                document.getElementById(`${prefix}Bank`).innerText = tx.bank_name || '-';
+                document.getElementById(`${prefix}BankAcc`).innerText = tx.bank_account || '-';
+                document.getElementById(`${prefix}BankName`).innerText = tx.bank_account_name || '-';
+                document.getElementById(`${prefix}Amount`).innerText = formattedAmount;
+                document.getElementById(`${prefix}AmountText`).innerText = thaiBahtText;
+                document.getElementById(`${prefix}Remark`).innerText = tx.items_remark || '-';
+                document.getElementById(`${prefix}Slip${prefix === 'v' ? 'Details' : ''}`).innerText = tx.slip_details || '-';
+                document.getElementById(`${prefix}PrintTime`).innerText = finalPrintTimestamp;
+                if (document.getElementById(`${prefix}Creator`)) document.getElementById(`${prefix}Creator`).innerText = tx.created_by || '-';
+            });
+
+            // สำเนาลง Copy Side พรีวิว
+            document.getElementById('vReceiptNoCopy').innerText = tx.receipt_number;
+            document.getElementById('vCustomerCopy').innerText = tx.customer_name;
+            document.getElementById('vDateCopy').innerText = formattedDate;
+            document.getElementById('vBillCopy').innerText = tx.bill_number || '-';
+            document.getElementById('vBankCopy').innerText = tx.bank_name || '-';
+            document.getElementById('vBankAccCopy').innerText = tx.bank_account || '-';
+            document.getElementById('vBankNameCopy').innerText = tx.bank_account_name || '-';
+            document.getElementById('vAmountCopy').innerText = formattedAmount;
+            document.getElementById('vAmountTextCopy').innerText = thaiBahtText;
+            document.getElementById('vRemarkCopy').innerText = tx.items_remark || '-';
+            document.getElementById('vSlipDetailsCopy').innerText = tx.slip_details || '-';
+            document.getElementById('vPrintTimeCopy').innerText = finalPrintTimestamp;
+
+            // สำเนาจริงฝั่งเครื่องพิมพ์
+            document.getElementById('pReceiptNoCopy').innerText = tx.receipt_number;
+            document.getElementById('pCustomerCopy').innerText = tx.customer_name;
+            document.getElementById('pDateCopy').innerText = formattedDate;
+            document.getElementById('pBillCopy').innerText = tx.bill_number || '-';
+            document.getElementById('pBankCopy').innerText = tx.bank_name || '-';
+            document.getElementById('pBankAccCopy').innerText = tx.bank_account || '-';
+            document.getElementById('pBankNameCopy').innerText = tx.bank_account_name || '-';
+            document.getElementById('pAmountCopy').innerText = formattedAmount;
+            document.getElementById('pAmountTextCopy').innerText = thaiBahtText;
+            document.getElementById('pRemarkCopy').innerText = tx.items_remark || '-';
+            document.getElementById('pSlipCopy').innerText = tx.slip_details || '-';
+            document.getElementById('pPrintTimeCopy').innerText = finalPrintTimestamp;
+
+            // เจนรูป QR Code ตัวเดิมออกมา
+            const lineOaId = "@365xfrzy"; 
+            const lineOaLink = `https://line.me/R/oaMessage/${lineOaId}/?${tx.receipt_number}`;
+            document.getElementById("vQrCode").innerHTML = "";
+            document.getElementById("pQrCode").innerHTML = "";
+            new QRCode(document.getElementById("vQrCode"), { text: lineOaLink, width: 110, height: 110 });
+            new QRCode(document.getElementById("pQrCode"), { text: lineOaLink, width: 110, height: 110 });
+
+            // สั่งควบคุมการแสดงผลของแจ้งเตือนลูกค้าใหม่หน้างาน
+            const isCustNew = tx.is_new_customer && tx.is_new_customer.indexOf("ใช่") !== -1;
+            document.getElementById('vNewCustWarning').style.display = isCustNew ? 'block' : 'none';
+            document.getElementById('vNewCustWarningCopy').style.display = isCustNew ? 'block' : 'none';
+            document.getElementById('pNewCustWarning').style.display = isCustNew ? 'block' : 'none';
+            document.getElementById('pNewCustWarningCopy').style.display = isCustNew ? 'block' : 'none';
+
+            // เปิดหน้าพรีวิวให้ตรวจสอบข้อมูลก่อนกดยืนยันสั่งพิมพ์
+            if (!previewModalObj) previewModalObj = new bootstrap.Modal(document.getElementById('previewModal'));
+            previewModalObj.show();
+        }
+
+        // =================================================================
+        // ส่วนจัดการฟังก์ชันหน้าฟอร์มเดิม
+        // =================================================================
         function generateReceiptNo() {
             const now = new Date();
             return `RE-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
@@ -534,6 +947,17 @@
         }
 
         function prepareAndShowPreview() {
+            // ตั้งสถานะเป็น CREATE บันทึกบิลใบใหม่ปกติ
+            currentAction = 'CREATE';
+            currentTxId = null;
+            reprintCountToSave = 1;
+
+            // ซ่อนกล่องเตือนพิมพ์ซ้ำทั้งหมดเพราะเป็นการสร้างใหม่
+            document.getElementById('vReprintStatus').style.display = 'none';
+            document.getElementById('vReprintStatusCopy').style.display = 'none';
+            document.getElementById('pReprintStatus').style.display = 'none';
+            document.getElementById('pReprintStatusCopy').style.display = 'none';
+
             let customer = document.getElementById('customerName').value.trim();
             const amount = document.getElementById('amount').value;
             const receiptNo = document.getElementById('receiptNumber').value;
@@ -623,7 +1047,7 @@
             previewModalObj.show();
         }
 
-        // บันทึกและสั่งพิมพ์
+        // บันทึกข้อมูลและสั่งพิมพ์จริง
         async function confirmPrintAndSave() {
             const customerName = document.getElementById('customerName').value.trim();
             const amount = parseFloat(document.getElementById('amount').value);
@@ -638,51 +1062,63 @@
             if (previewModalObj) previewModalObj.hide();
 
             try {
-                // กรณีที่เป็น "ลูกค้าใหม่" ให้ทำการสร้างรายชื่อลงตาราง customers อัตโนมัติ (Upsert กันซ้ำ)
-                if (isNewCustomer) {
-                    const { error: custError } = await supabaseClient
-                        .from('customers')
-                        .upsert({ 
-                            name: customerName, 
-                            bank_name: bankNameVal, 
-                            bank_account: bankAccVal, 
-                            bank_account_name: bankAccNameVal 
-                        }, { onConflict: 'name' });
+                if (currentAction === 'CREATE') {
+                    // กรณีที่เป็น "ลูกค้าใหม่" ให้ทำการสร้างรายชื่อลงตาราง customers อัตโนมัติ (Upsert กันซ้ำ)
+                    if (isNewCustomer) {
+                        const { error: custError } = await supabaseClient
+                            .from('customers')
+                            .upsert({ 
+                                name: customerName, 
+                                bank_name: bankNameVal, 
+                                bank_account: bankAccVal, 
+                                bank_account_name: bankAccNameVal 
+                            }, { onConflict: 'name' });
 
-                    if (custError) console.error("Auto customer register log:", custError.message);
+                        if (custError) console.error("Auto customer register log:", custError.message);
+                    }
+
+                    // การบันทึกข้อมูลโอนลงตารางหลักหลัก transactions และจดบันทึกครั้งที่พิมพ์เริ่มต้นเป็น 1
+                    const { error: txError } = await supabaseClient
+                        .from('transactions')
+                        .insert([{
+                            receipt_number: receiptNo,
+                            is_new_customer: isNewCustomer ? "ใช่ (พนักงานคีย์เองที่หน้าจอ)" : "ไม่ใช่ (เลือกจากฐานข้อมูล)",
+                            customer_name: isNewCustomer ? `${customerName} (เพิ่มใหม่)` : customerName,
+                            bank_name: bankNameVal,
+                            bank_account: bankAccVal,
+                            bank_account_name: bankAccNameVal,
+                            amount: amount,
+                            amount_thai_text: thaiBaht(amount),
+                            transfer_date_time: `${docDate} เวลา ${docTime}`,
+                            bill_number: document.getElementById('billNumber').value.trim(),
+                            slip_details: document.getElementById('slipDetails').value.trim(),
+                            items_remark: document.getElementById('itemsRemark').value.trim(),
+                            created_by: document.getElementById('createdBy').value.trim(),
+                            print_count: 1 // พิมพ์ครั้งแรกคือครั้งที่ 1
+                        }]);
+
+                    if (txError) throw txError;
+                    
+                } else if (currentAction === 'REPRINT') {
+                    // กรณีที่เป็นการพิมพ์ซ้ำ ให้ทำการอัปเดตสถิติจำนวนครั้งการพิมพ์ลงแถวเดิมใน Supabase
+                    const { error: updateError } = await supabaseClient
+                        .from('transactions')
+                        .update({ print_count: reprintCountToSave })
+                        .eq('id', currentTxId);
+
+                    if (updateError) throw updateError;
                 }
 
-                // การบันทึกข้อมูลโอนลงตารางหลักหลัก transactions ด้วยตัวแปรเชื่อมต่อตัวใหม่
-                const { error: txError } = await supabaseClient
-                    .from('transactions')
-                    .insert([{
-                        receipt_number: receiptNo,
-                        is_new_customer: isNewCustomer ? "ใช่ (พนักงานคีย์เองที่หน้าจอ)" : "ไม่ใช่ (เลือกจากฐานข้อมูล)",
-                        customer_name: isNewCustomer ? `${customerName} (เพิ่มใหม่)` : customerName,
-                        bank_name: bankNameVal,
-                        bank_account: bankAccVal,
-                        bank_account_name: bankAccNameVal,
-                        amount: amount,
-                        amount_thai_text: thaiBaht(amount),
-                        transfer_date_time: `${docDate} เวลา ${docTime}`,
-                        bill_number: document.getElementById('billNumber').value.trim(),
-                        slip_details: document.getElementById('slipDetails').value.trim(),
-                        items_remark: document.getElementById('itemsRemark').value.trim(),
-                        created_by: document.getElementById('createdBy').value.trim()
-                    }]);
-
-                if (txError) throw txError;
-
-                showActionAlert('✅ บันทึกยอดเงินสำเร็จ! กำลังเปิดหน้าต่างเครื่องพิมพ์...', 'success');
+                showActionAlert('✅ ดำเนินการธุรกรรมเรียบร้อย! กำลังเรียกใช้คำสั่งพิมพ์...', 'success');
                 setTimeout(() => {
                     window.print();
                     clearForm();
-                    fetchCustomersFromSupabase(); // รีโหลดรายชื่อลูกค้าใหม่เข้ามาอัปเดตในลิสต์
+                    fetchCustomersFromSupabase(); // รีโหลดคลังข้อมูลใหม่ล่าสุด
                 }, 800);
 
             } catch (err) {
                 console.error("Save Error log:", err);
-                showActionAlert('❌ ไม่สามารถบันทึกข้อมูลได้: ' + err.message + ' (ระบบอนุญาตพิมพ์กรณีฉุกเฉินด่วนได้)', 'danger');
+                showActionAlert('❌ ไม่สามารถประมวลผลระบบเก็บข้อมูลได้: ' + err.message + ' (ระบบอนุญาตพิมพ์กรณีด่วนได้)', 'danger');
                 setTimeout(() => { window.print(); clearForm(); }, 3000);
             }
         }
