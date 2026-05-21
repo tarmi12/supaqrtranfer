@@ -1,0 +1,181 @@
+body {
+    background: #eef2f7;
+    font-family: 'Sarabun', sans-serif;
+    color: #0f172a;
+    font-size: 1.15rem;
+}
+.app-header {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    color: white;
+    padding: 25px 0;
+    margin-bottom: 20px;
+    border-bottom: 6px solid #ef4444;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+.app-header h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+}
+.card {
+    border-radius: 20px;
+    border: none;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.08);
+    background: #ffffff;
+    margin-bottom: 25px;
+}
+.card-header-custom {
+    border-bottom: 2px solid #e2e8f0;
+    padding: 20px 24px;
+    font-weight: 800;
+    font-size: 1.3rem;
+    color: #1e293b;
+}
+.form-label {
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 8px;
+    font-size: 1.1rem;
+}
+.form-control, .form-select {
+    border: 2px solid #94a3b8;
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-size: 1.15rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    color: #0f172a;
+}
+.form-control:focus, .form-select:focus {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2);
+}
+.form-control[readonly], .form-select[disabled] {
+    background-color: #cbd5e1 !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+    cursor: not-allowed;
+    font-weight: 700;
+}
+.btn {
+    border-radius: 14px;
+    padding: 12px 24px;
+    font-weight: 800;
+    font-size: 1.15rem;
+    transition: all 0.2s;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+.preview-slip-modal {
+    background: #fff;
+    border: 1px solid #000;
+    padding: 20px 10px;
+    width: 100%;
+    max-width: 80mm;
+    margin: 0 auto;
+    color: #000;
+    line-height: 1.5;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}
+.preview-slip-modal table {
+    width: 100%;
+    font-size: 1.15rem;
+    border-collapse: collapse;
+}
+.preview-dashed-line {
+    border-top: 1px dashed #000;
+    margin: 15px 0;
+}
+.preview-large-title {
+    font-size: 40px;
+    text-align: center;
+    line-height: 1.1;
+}
+.preview-warning-box {
+    border: 1px solid #000;
+    padding: 6px;
+    font-size: 18px;
+    text-align: center;
+    margin: 10px 0;
+    background-color: #fee2e2;
+    color: #b91c1c;
+}
+.nav-pills .nav-link {
+    border-radius: 12px;
+    color: #475569;
+    background-color: #f1f5f9;
+    transition: all 0.2s;
+}
+.nav-pills .nav-link.active {
+    background-color: #ef4444;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+}
+.report-table th {
+    background-color: #f8fafc;
+    color: #1e293b;
+    font-weight: 800;
+    font-size: 1.1rem;
+    border-bottom: 3px solid #cbd5e1;
+}
+.report-table td {
+    font-size: 1.1rem;
+    vertical-align: middle;
+    font-weight: 600;
+}
+.login-container {
+    max-width: 480px;
+    margin: 80px auto;
+}
+.login-card {
+    border-radius: 24px;
+    border: none;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+    background: #ffffff;
+    padding: 40px;
+}
+.search-results-box {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border: 2px solid #ef4444;
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    max-height: 380px;
+    overflow-y: auto;
+    z-index: 1050;
+    margin-top: 5px;
+    display: none;
+}
+.search-item {
+    padding: 12px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    cursor: pointer;
+    transition: background 0.15s ease-in-out;
+    text-align: left;
+    background: none;
+    border-left: none;
+    border-right: none;
+    width: 100%;
+}
+.search-item:hover { background-color: #f1f5f9; }
+.search-item:last-child { border-bottom: none; }
+
+#printArea { display: none; }
+
+@media print {
+    body > *:not(#printArea) { display: none !important; }
+    #printArea {
+        display: block !important;
+        position: absolute;
+        left: 0; top: 0; width: 80mm; margin: 0; padding: 1mm 2mm;
+        font-family: 'Sarabun', sans-serif; 
+        font-size: 16px; 
+        color: #000; line-height: 1.5; background: #ffffff;
+    }
+    #printArea, #printArea * { font-weight: 600 !important; }
+    .print-bolder, .print-bolder * { font-weight: 800 !important; }
+    .print-large-title { font-size: 48px !important; margin-bottom: 2mm; text-align: center; font-weight: 800 !important; }
+    .print-warning-box { border: 1px solid #000; padding: 2mm; font-size: 22px !important; text-align: center; margin: 3mm 0; font-weight: 800 !important; }
+    @page { size: 80mm auto; margin: 0; }
+}
