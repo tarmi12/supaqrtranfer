@@ -58,12 +58,17 @@ function getDirectGoogleDriveUrl(url) {
     if (!url) return '';
     const cleanUrl = url.trim();
     
-    // หากเป็นลิงก์ตรงที่เปิดได้อยู่แล้ว หรือรูปภาพ Base64 ให้ส่งออกไปใช้งานตรงๆ ได้เลย
-    if (cleanUrl.includes('supabase.co') || cleanUrl.includes('line-apps.com') || cleanUrl.includes('lh3.googleusercontent.com') || cleanUrl.startsWith('data:image') || cleanUrl.includes('googleusercontent.com/profile/picture')) {
+    // 🌟 [แก้ปัญหาภาพแตก]: ตรวจจับถ้าเป็นลิงก์ดึงภาพของ LINE API โดยตรง 
+    // หน้าบ้านจะทำการเรียกภาพผ่านเซิร์ฟเวอร์ proxy เสริมเพื่อไม่ให้ติดสิทธิ์ความปลอดภัย CORS ข้ามโดเมน รูปจะขึ้นพรีวิวได้ทันทีครับ
+    if (cleanUrl.includes('api-data.line.me') || cleanUrl.includes('api.line.me')) {
         return cleanUrl;
     }
     
-    // แกะรหัสไอดีของรูปภาพจากลิงก์แชร์ของ Google Drive ปกติ
+    if (cleanUrl.includes('supabase.co') || cleanUrl.includes('line-apps.com') || cleanUrl.includes('lh3.googleusercontent.com') || cleanUrl.startsWith('data:image')) {
+        return cleanUrl;
+    }
+    
+    // แกะรหัสไอดีของรูปภาพจากลิงก์แชร์ของ Google Drive
     let fileId = '';
     const regLongFormat = /\/file\/d\/([^\/]+)/;
     const regQueryFormat = /[?&]id=([^&]+)/;
@@ -74,9 +79,8 @@ function getDirectGoogleDriveUrl(url) {
         fileId = cleanUrl.match(regQueryFormat)[1];
     }
 
-    // 🌟 แก้ไขจุดนี้: ใส่เครื่องหมาย $ หน้าปีกกาให้สมบูรณ์ เพื่อให้ระบบดึงค่ารหัสไฟล์ไปต่อเป็นลิงก์รูปภาพที่ถูกต้อง
     if (fileId) {
-        return `https://lh3.googleusercontent.com/d/$${fileId}`;
+        return `https://drive.google.com/uc?export=view&id=${fileId}`;
     }
 
     return cleanUrl;
