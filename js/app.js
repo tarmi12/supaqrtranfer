@@ -1,5 +1,5 @@
 // ==========================================
-// 🚀 APPLICATION CONTROLLER (สมองกลควบคุมหลัก - อัปเกรดระบบ 3 รูปภาพ & Supabase Sync)
+// 🚀 APPLICATION CONTROLLER (สมองกลควบคุมหลัก - แก้ไข Bug แมตช์ตัวแปรและโครงสลิปคู่)
 // ==========================================
 
 let CENTRAL_CUSTOMER_DB = [];
@@ -27,324 +27,354 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('report-tab').addEventListener('click', loadTransactionsReportDashboard);
     document.getElementById('btnRefreshReport').addEventListener('click', loadTransactionsReportDashboard);
     document.getElementById('reportSearch').addEventListener('keyup', filterReportTable);
-    document.getElementById('filterDate').addEventListener('change', filterReportTable);
-
-    // เริ่มต้นเปิดระบบดึงข้อมูลรายชื่อจากเซิร์ฟเวอร์ตุนไว้ในเครื่องทันที
-    initDateTime();
-    loadCustomersCentralMemory();
-
-    // บูตตัวจำลองหน้าต่าง Popup คอนเฟิร์มพิมพ์ (Bootstrap Modal Context)
-    previewModalObj = new bootstrap.Modal(document.getElementById('previewModal'));
-    imageModalObj = new bootstrap.Modal(document.getElementById('imageModal'));
+    document.getElementById('reportStartDate').addEventListener('change', filterReportTable);
+    document.getElementById('reportEndDate').addEventListener('change', filterReportTable);
+    document.getElementById('btnClearReportFilter').addEventListener('click', clearReportFilters);
 });
 
-/**
- * ดึงข้อมูลรายชื่อลูกค้าจาก Supabase มาจัดเก็บลงในหน่วยความจำของบราวเซอร์ (Global State Cache)
- */
-async function loadCustomersCentralMemory() {
+async function checkUserSession() {
+    try {
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
+        if (error) throw error;
+        if (session) onAuthSuccess(session.user);
+        else onAuthRequired();
+    } catch (err) {
+        console.error("Session check error:", err);
+        onAuthRequired();
+    }
+}
+
+supabaseClient.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' && session) onAuthSuccess(session.user);
+    else if (event === 'SIGNED_OUT') onAuthRequired();
+});
+
+function onAuthSuccess(user) {
+    document.getElementById('loginSection').style.display = 'none';
+    document.getElementById('appMainSection').style.display = 'block';
+    document.getElementById('logoutBtn').style.display = 'block';
+    document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+    
+    const userEmailPrefix = user.email.split('@')[0];
+    document.getElementById('createdBy').value = userEmailPrefix;
+
+    initDateTime();
+    loadCustomersData();
+}
+
+function onAuthRequired() {
+    document.getElementById('appMainSection').style.display = 'none';
+    document.getElementById('logoutBtn').style.display = 'none';
+    document.getElementById('loginSection').style.display = 'block';
+    document.getElementById('loginForm').addEventListener('submit', handleLoginSubmit);
+}
+
+async function handleLoginSubmit(e) {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const submitBtn = document.getElementById('loginSubmitBtn');
+    const alertContainer = document.getElementById('loginAlertContainer');
+
+    alertContainer.innerHTML = '';
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span> ตรวจสอบสิทธิ์...`;
+
+    try {
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+    } catch (err) {
+        console.error("Login failed:", err.message);
+        alertContainer.innerHTML = `<div class="alert alert-danger border-2 p-3 fw-bold fs-6"><i class="bi bi-shield-slash-fill me-1"></i> รหัสผ่านไม่ถูกต้อง!</div>`;
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<i class="bi bi-box-arrow-in-right me-1"></i> เข้าสู่ระบบทันที`;
+    }
+}
+
+async function handleLogout() {
+    try {
+        const { error } = await supabaseClient.auth.signOut();
+        if (error) throw error;
+    } catch (err) {
+        console.error("Logout error:", err.message);
+        onAuthRequired();
+    }
+}
+
+async function loadCustomersData() {
     try {
         CENTRAL_CUSTOMER_DB = await SupabaseDB.fetchCustomers();
-        console.log("🌟 ซิงค์คลังฐานข้อมูลรายชื่อลูกค้าสำเร็จแล้ว ค้นหาได้ทันที จำนวน:", CENTRAL_CUSTOMER_DB.length, "ราย");
-    } catch (e) {
-        console.error("❌ ระบบไม่สามารถซิงค์ข้อมูลสมาชิกลูกค้าได้:", e.message);
-        showActionAlert("ไม่สามารถเชื่อมต่อคลังข้อมูลหลักลูกค้าได้ ระบบจะเปิดโหมดคีย์สด", "danger");
+        showActionAlert('⚡ อัปเดตคลังรายชื่อลูกค้าจาก Supabase ล่าสุดเรียบร้อย!', 'success');
+        document.getElementById('customerSearchInput').placeholder = `🔍 พิมพ์ค้นหาจากคลังลูกค้า (${CENTRAL_CUSTOMER_DB.length} รายชื่อ)...`;
+    } catch (err) {
+        console.error("Error loading customers:", err);
+        showActionAlert('📡 เชื่อมต่อฐานข้อมูลล้มเหลว: ' + err.message, 'danger');
     }
 }
 
 function showCustomerDropdown() {
-    const wrapper = document.getElementById('customerDropdownWrapper');
-    filterCustomerSearch(); 
-    wrapper.style.display = 'block';
-}
-
-function hideCustomerDropdown() {
-    setTimeout(() => {
-        document.getElementById('customerDropdownWrapper').style.display = 'none';
-    }, 250);
+    document.getElementById('customerSearchDropdown').style.display = 'block';
+    filterCustomerSearch();
 }
 
 function toggleCustomerDropdown() {
-    const wrapper = document.getElementById('customerDropdownWrapper');
-    if (wrapper.style.display === 'block') {
-        wrapper.style.display = 'none';
-    } else {
-        document.getElementById('customerSearchInput').focus();
-    }
+    const dropdown = document.getElementById('customerSearchDropdown');
+    if (dropdown.style.display === 'block') dropdown.style.display = 'none';
+    else { dropdown.style.display = 'block'; document.getElementById('customerSearchInput').focus(); filterCustomerSearch(); }
 }
 
-/**
- * ฟังก์ชันช่วยค้นหาและจับคู่ข้อมูลลูกค้าจากหน่วยความจำ Supabase เคลียร์ปัญหาฟ้องขัดข้องข้ามระบบ
- */
 function filterCustomerSearch() {
-    const keyword = document.getElementById('customerSearchInput').value.trim().toLowerCase();
-    const wrapper = document.getElementById('customerDropdownWrapper');
-    wrapper.innerHTML = '';
+    const keyword = document.getElementById('customerSearchInput').value.toLowerCase().trim();
+    const dropdown = document.getElementById('customerSearchDropdown');
+    dropdown.innerHTML = '';
 
-    // ค้นหารองรับทั้ง ชื่อลูกค้า และ เลขบัญชีธนาคาร จากข้อมูลที่ดึงมาจาก Supabase
-    const matched = CENTRAL_CUSTOMER_DB.filter(c => 
-        (c.name && c.name.toLowerCase().includes(keyword)) || 
-        (c.bank_account && c.bank_account.includes(keyword))
-    );
+    const newCustBtn = document.createElement('button');
+    newCustBtn.type = 'button';
+    newCustBtn.className = 'search-item d-flex align-items-center justify-content-between text-danger fw-bold';
+    newCustBtn.style.backgroundColor = '#fff5f5';
+    newCustBtn.innerHTML = `<span><i class="bi bi-person-plus-fill me-2"></i>➕ กรอกข้อมูลลูกค้าใหม่เอง (ระบุบัญชีเอง)</span><span class="badge bg-danger text-white fs-6">คีย์ใหม่</span>`;
+    newCustBtn.onclick = () => selectCustomerItem('NEW');
+    dropdown.appendChild(newCustBtn);
 
-    if (matched.length === 0) {
-        wrapper.innerHTML = `<button type="button" class="search-item text-danger fw-bold text-center" onclick="setupAsNewCustomerInput()"><i class="bi bi-person-plus-fill"></i> ไม่พบข้อมูลบัญชีนี้ บังคับเปิดสิทธิ์คีย์พนักงานใหม่</button>`;
-        return;
+    let filteredList = CENTRAL_CUSTOMER_DB;
+    if (keyword !== '' && !keyword.startsWith('➕')) {
+        filteredList = CENTRAL_CUSTOMER_DB.filter(c => 
+            c.name.toLowerCase().includes(keyword) ||
+            (c.phone && c.phone.includes(keyword)) ||
+            (c.bank_name && c.bank_name.toLowerCase().includes(keyword)) ||
+            (c.bank_account && c.bank_account.includes(keyword))
+        );
     }
 
-    matched.forEach(c => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'search-item';
-        // อัปเดตการแสดงผลให้เห็นเลขบัญชีเพื่อความแม่นยำในการเลือก
-        btn.innerHTML = `<strong>${c.name}</strong> <span class="text-muted small">(${c.bank_name || 'ไม่ระบุ'} : ${c.bank_account || 'ไม่มีบัญชี'})</span>`;
-        btn.onclick = () => selectCustomer(c.name);
-        wrapper.appendChild(btn);
-    });
-}
+    if (filteredList.length === 0) {
+        dropdown.innerHTML += `<div class="p-3 text-center text-muted fw-bold fs-6"><i class="bi bi-exclamation-circle me-1"></i> ไม่พบรายชื่อลูกค้า</div>`;
+    } else {
+        filteredList.forEach((cust) => {
+            const originalIndex = CENTRAL_CUSTOMER_DB.indexOf(cust);
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'search-item d-flex flex-column align-items-start';
+            let phoneBadge = cust.phone ? `<span class="badge bg-light text-dark border ms-2"><i class="bi bi-telephone-fill"></i> ${cust.phone}</span>` : '';
+            let bankBadge = cust.bank_name ? `<span class="badge bg-secondary text-white ms-2">${cust.bank_name}</span>` : '';
 
-/**
- * ฟังก์ชันทำงานเมื่อผู้ใช้คลิกเลือกลูกค้าเก่าจากตารางลิสต์
- */
-function selectCustomer(name) {
-    // ดึงค่าตามโครงสร้างสคีมาของตาราง Supabase
-    const cust = CENTRAL_CUSTOMER_DB.find(c => c.name === name);
-    if (cust) {
-        document.getElementById('customerSearchInput').value = cust.name;
-        document.getElementById('customerName').value = cust.name;
-        document.getElementById('customerPhone').value = cust.phone || '';
-        document.getElementById('bankName').value = cust.bank_name || '';
-        document.getElementById('bankAccount').value = cust.bank_account || '';
-        document.getElementById('bankAccountName').value = cust.bank_account_name || '';
-        
-        // ✨ จุดสำคัญ: บัญชีอยู่นอกระบบจะเปลี่ยนสถานะเป็น false ทันทีเพราะมีตัวตนอยู่แล้ว
-        isNewCustomer = false;
-        
-        lockFormFields(false);
-        document.getElementById('customerStatusBadge').innerHTML = `<span class="badge bg-success border-0 px-3 py-2"><i class="bi bi-shield-check"></i> ตรวจสอบบัญชี: ลูกค้าเก่าในคลังอนุมัติ</span>`;
-        hideCustomerDropdown();
+            btn.innerHTML = `
+                <div class="d-flex w-100 justify-content-between align-items-center">
+                    <strong class="text-dark fs-5">${cust.name}</strong><div>${phoneBadge}${bankBadge}</div>
+                </div>
+                <small class="text-muted mt-1" style="font-size: 0.95rem;"><i class="bi bi-credit-card-2-front"></i> บัญชี: ${cust.bank_account || '-'} | ชื่อบัญชี: ${cust.bank_account_name || '-'}</small>
+            `;
+            btn.onclick = () => selectCustomerItem(originalIndex);
+            dropdown.appendChild(btn);
+        });
     }
 }
 
-function setupAsNewCustomerInput() {
-    const keyword = document.getElementById('customerSearchInput').value.trim();
-    clearFormValues();
-    
-    document.getElementById('customerName').value = keyword;
-    isNewCustomer = true; // บังคับสิทธิ์เป็นลูกค้าใหม่เพื่อรอเอาเลขบัญชีไปบันทึกเพิ่มลงฐานข้อมูลใหม่อัตโนมัติ
-    
-    lockFormFields(false);
-    document.getElementById('customerStatusBadge').innerHTML = `<span class="badge bg-danger border-0 px-3 py-2"><i class="bi bi-person-plus"></i> ตรวจสอบบัญชี: (เพิ่มใหม่) บัญชีอยู่นอกระบบ</span>`;
-    hideCustomerDropdown();
+function selectCustomerItem(indexValue) {
+    const searchInput = document.getElementById('customerSearchInput');
+    document.getElementById('customerSearchDropdown').style.display = 'none';
+
+    if (indexValue === 'NEW') {
+        searchInput.value = "➕ เพิ่มรายชื่อลูกค้าใหม่เอง (ระบุบัญชีเอง)";
+        lockFormFields(false); clearFormValues(); isNewCustomer = true;
+        document.getElementById('customerBadge').className = "badge bg-danger";
+        document.getElementById('customerBadge').textContent = "โหมดคีย์สดใหม่";
+        showActionAlert('⚠️ คุณกำลังระบุข้อมูลบัญชีโอนด้วยตนเอง กรุณาตรวจสอบให้ละเอียด!', 'warning');
+    } else {
+        lockFormFields(true);
+        const c = CENTRAL_CUSTOMER_DB[parseInt(indexValue)];
+        if (c) {
+            searchInput.value = c.name;
+            document.getElementById('customerName').value = c.name;
+            document.getElementById('customerPhone').value = c.phone || '';
+            document.getElementById('bankName').value = c.bank_name || '';
+            document.getElementById('bankAccount').value = c.bank_account || '';
+            document.getElementById('bankAccountName').value = c.bank_account_name || '';
+            isNewCustomer = false;
+            document.getElementById('customerBadge').className = "badge bg-success";
+            document.getElementById('customerBadge').textContent = "ลูกค้าในคลัง";
+            showActionAlert(`📂 โหลดข้อมูลบัญชีของ "${c.name}" เรียบร้อยแล้ว`, 'info');
+        }
+    }
 }
 
-function lockFormFields(state) {
-    document.getElementById('customerName').readOnly = state;
-    document.getElementById('customerPhone').readOnly = state;
-    document.getElementById('bankName').disabled = state;
-    document.getElementById('bankAccount').readOnly = state;
-    document.getElementById('bankAccountName').readOnly = state;
+document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('customerSearchDropdown');
+    const searchInput = document.getElementById('customerSearchInput');
+    if (dropdown && searchInput) {
+        const parent = searchInput.closest('.position-relative');
+        if (parent && !parent.contains(e.target)) dropdown.style.display = 'none';
+    }
+});
+
+function distributeSlipData(basePrefix, suffix, data) {
+    document.getElementById(`${basePrefix}ReceiptNo${suffix}`).innerText = data.receiptNo;
+    document.getElementById(`${basePrefix}Customer${suffix}`).innerText = data.customerName;
+    document.getElementById(`${basePrefix}CustomerPhone${suffix}`).innerText = data.customerPhone;
+    document.getElementById(`${basePrefix}Date${suffix}`).innerText = data.formattedDate;
+    document.getElementById(`${basePrefix}Bill${suffix}`).innerText = data.billNo;
+    document.getElementById(`${basePrefix}Bank${suffix}`).innerText = data.bankName;
+    document.getElementById(`${basePrefix}BankAcc${suffix}`).innerText = data.bankAccount;
+    document.getElementById(`${basePrefix}BankName${suffix}`).innerText = data.bankAccountName;
+    document.getElementById(`${basePrefix}Amount${suffix}`).innerText = data.formattedAmount;
+    document.getElementById(`${basePrefix}AmountText${suffix}`).innerText = data.thaiBahtText;
+    document.getElementById(`${basePrefix}Remark${suffix}`).innerText = data.itemsRemark;
+    
+    const slipEl = document.getElementById(`${basePrefix}Slip${basePrefix === 'v' ? 'Details' : ''}${suffix}`);
+    if (slipEl) slipEl.innerText = data.slipDetails;
+
+    document.getElementById(`${basePrefix}PrintTime${suffix}`).innerText = data.finalPrintTimestamp;
+    if (document.getElementById(`${basePrefix}Creator${suffix}`)) document.getElementById(`${basePrefix}Creator${suffix}`).innerText = data.createdBy;
 }
 
-/**
- * ตรวจสอบและประมวลผลเมื่อพนักงานกดยื่นแบบฟอร์มคำนวณบิล
- */
 function handleFormSubmit(e) {
     e.preventDefault();
-    
-    const inputAmount = parseFloat(document.getElementById('transferAmount').value);
-    if (isNaN(inputAmount) || inputAmount <= 0) {
-        alert("กรุณาระบุจำนวนเงินโอนที่ถูกต้องและมีค่ามากกว่า 0 บาท");
-        return;
+    if (!document.getElementById('customerName').value.trim() || isNaN(parseFloat(document.getElementById('amount').value))) {
+        showActionAlert('⚠️ กรุณากรอกข้อมูลให้ครบถ้วนก่อนตรวจสอบ', 'warning'); return;
     }
 
     const cName = document.getElementById('customerName').value.trim();
-    const bAccount = document.getElementById('bankAccount').value.trim();
-
-    // 🌟 ดับเบิ้ลเช็กความถูกต้องอีกครั้ง: ลองหาทั้งชื่อหรือเลขบัญชีในคลัง เพื่อเคลียร์ปัญหาคำว่า (เพิ่มใหม่) ค้างคา
-    const finalMatch = CENTRAL_CUSTOMER_DB.find(c => 
-        c.name.trim() === cName || (c.bank_account && c.bank_account.trim() === bAccount)
-    );
-
-    if (finalMatch) {
+    const bAcc = document.getElementById('bankAccount').value.trim();
+    
+    // 🌟 ดับเบิ้ลเช็กความถูกต้อง ป้องกันค้างสถานะ (เพิ่มใหม่) ทั้งที่มีในคลังตัวจริง
+    const checkCust = CENTRAL_CUSTOMER_DB.find(c => c.name.trim() === cName || (c.bank_account && c.bank_account.trim() === bAcc));
+    if (checkCust) {
         isNewCustomer = false;
-        // หากเจอว่ามีอยู่แล้วแต่พนักงานกดพิมพ์ค้นหาพลาด ให้ช่วยอัปเดตข้อมูลให้ตรงตามฐานข้อมูลเซิร์ฟเวอร์ทันที
-        document.getElementById('customerName').value = finalMatch.name;
-        document.getElementById('bankName').value = finalMatch.bank_name || '';
-        document.getElementById('bankAccount').value = finalMatch.bank_account || '';
-        document.getElementById('bankAccountName').value = finalMatch.bank_account_name || '';
-    } else {
-        isNewCustomer = true;
     }
 
-    currentAction = 'CREATE';
-    currentTxId = null;
-    reprintCountToSave = 1;
-
-    // รวบรวมฟิลด์กางข้อความพรีวิวลงสลิปจำลองความร้อน
-    document.getElementById('pReceiptNo').innerText = document.getElementById('receiptNumber').value;
-    document.getElementById('pDate').innerText = document.getElementById('docDate').value + ' ' + document.getElementById('docTime').value;
+    currentAction = 'CREATE'; currentTxId = null; reprintCountToSave = 1;
+    toggleReprintWidgets(false);
     
-    // แสดงสถานะในใบเสร็จ
-    document.getElementById('pCustName').innerText = isNewCustomer ? `${document.getElementById('customerName').value} (เพิ่มใหม่)` : document.getElementById('customerName').value;
-    document.getElementById('pPhone').innerText = document.getElementById('customerPhone').value || '-';
-    document.getElementById('pBankInfo').innerText = `${document.getElementById('bankName').value} (เลขบัญชี: ${document.getElementById('bankAccount').value})`;
-    document.getElementById('pBankAccName').innerText = document.getElementById('bankAccountName').value;
-    
-    document.getElementById('pAmount').innerText = inputAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    document.getElementById('pAmountThai').innerText = thaiBaht(inputAmount);
-    document.getElementById('pBillNo').innerText = document.getElementById('billNumber').value || '-';
-    document.getElementById('pSlip').innerText = document.getElementById('slipDetails').value || '-';
-    document.getElementById('pRemark').innerText = document.getElementById('itemsRemark').value || '-';
-    document.getElementById('pPrintTime').innerText = new Date().toLocaleString('th-TH');
+    const amountVal = document.getElementById('amount').value;
+    const docDateVal = document.getElementById('docDate').value;
+    const docTimeVal = document.getElementById('docTime').value;
+    let d = docDateVal ? new Date(docDateVal) : new Date();
+    const now = new Date();
 
-    // ล้างและขึ้นภาพ QR Code ทันทีสำหรับพนักงานตรวจสอบความปลอดภัยระบบบัญชี
-    document.getElementById("qrcode").innerHTML = "";
-    new QRCode(document.getElementById("qrcode"), {
-        text: document.getElementById('receiptNumber').value,
-        width: 110,
-        height: 110
-    });
+    const slipData = {
+        receiptNo: document.getElementById('receiptNumber').value,
+        customerName: isNewCustomer ? document.getElementById('customerName').value.trim() + ' (เพิ่มใหม่)' : document.getElementById('customerName').value.trim(),
+        customerPhone: document.getElementById('customerPhone').value.trim() || '-',
+        billNo: document.getElementById('billNumber').value.trim(),
+        bankName: document.getElementById('bankName').value.trim() || '-',
+        bankAccount: document.getElementById('bankAccount').value.trim() || '-',
+        bankAccountName: document.getElementById('bankAccountName').value.trim() || '-',
+        itemsRemark: document.getElementById('itemsRemark').value.trim() || '-',
+        slipDetails: document.getElementById('slipDetails').value.trim() || '-',
+        createdBy: document.getElementById('createdBy').value.trim(),
+        formattedDate: docDateVal ? `${d.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })} เวลา ${docTimeVal || '00:00'} น.` : '-',
+        finalPrintTimestamp: `${now.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })} ${now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} น.`,
+        formattedAmount: parseFloat(amountVal).toLocaleString('th-TH', { minimumFractionDigits: 2 }) + ' บาท',
+        thaiBahtText: thaiBaht(amountVal)
+    };
 
+    const warningStatus = isNewCustomer ? 'block' : 'none';
+    document.getElementById('vNewCustWarning').style.display = warningStatus;
+    document.getElementById('vNewCustWarningCopy').style.display = warningStatus;
+    document.getElementById('pNewCustWarning').style.display = warningStatus;
+    document.getElementById('pNewCustWarningCopy').style.display = warningStatus;
+
+    distributeSlipData('v', '', slipData); distributeSlipData('v', 'Copy', slipData);
+    distributeSlipData('p', '', slipData); distributeSlipData('p', 'Copy', slipData);
+
+    renderReceiptQrCode(slipData.receiptNo);
+}
+
+function renderReceiptQrCode(receiptNo) {
+    const lineOaId = "@365xfrzy"; const lineOaLink = `https://line.me/R/oaMessage/${lineOaId}/?${receiptNo}`;
+    document.getElementById("vQrCode").innerHTML = ""; document.getElementById("pQrCode").innerHTML = "";
+    new QRCode(document.getElementById("vQrCode"), { text: lineOaLink, width: 110, height: 110 });
+    new QRCode(document.getElementById("pQrCode"), { text: lineOaLink, width: 110, height: 110 });
+
+    if (!previewModalObj) previewModalObj = new bootstrap.Modal(document.getElementById('previewModal'));
     previewModalObj.show();
 }
 
-/**
- * บันทึกข้อมูลและประวัติลงถังคลาวด์เดี่ยวแบบเรียลไทม์ (Supabase DB Engine Sync)
- */
 async function confirmPrintAndSave() {
-    previewModalObj.hide();
-    document.getElementById('btnConfirmPrintAndSave').disabled = true;
+    if (previewModalObj) previewModalObj.hide();
+    showActionAlert('⏳ กำลังบันทึกข้อมูลธุรกรรมลง Supabase Database...', 'info');
 
-    const custName = document.getElementById('customerName').value.trim();
-    const bName = document.getElementById('bankName').value;
-    const bAccount = document.getElementById('bankAccount').value.trim();
-    const bAccountName = document.getElementById('bankAccountName').value.trim();
-    const cPhone = document.getElementById('customerPhone').value.trim();
+    const customerName = document.getElementById('customerName').value.trim();
+    const customerPhoneVal = document.getElementById('customerPhone').value.trim();
+    const amount = parseFloat(document.getElementById('amount').value);
+    const docDate = document.getElementById('docDate').value;
+    const docTime = document.getElementById('docTime').value;
 
     try {
         if (currentAction === 'CREATE') {
-            // โครงสร้าง Payload ยิงเซฟลงตารางหลัก Transactions บน Supabase
-            const txPayload = {
-                receipt_number: document.getElementById('receiptNumber').value,
-                is_new_customer: isNewCustomer,
-                customer_name: isNewCustomer ? `${custName} (เพิ่มใหม่)` : custName,
-                bank_name: bName,
-                bank_account: bAccount,
-                bank_account_name: bAccountName,
-                amount: parseFloat(document.getElementById('transferAmount').value),
-                amount_thai_text: document.getElementById('pAmountThai').innerText,
-                transfer_date_time: `${document.getElementById('docDate').value} ${document.getElementById('docTime').value}`,
-                bill_number: document.getElementById('billNumber').value || null,
-                slip_details: document.getElementById('slipDetails').value || null,
-                items_remark: document.getElementById('itemsRemark').value || null,
-                created_by: "พนักงานหน้าเคาน์เตอร์",
-                reprint_count: 1
-            };
-
-            await SupabaseDB.insertTransaction(txPayload);
-
-            // 💡 หากระบบประมวลผลแล้วว่าเป็นลูกค้าตัวจริงนอกระบบ (New Customer) ให้ทำอัปโหลดเพิ่มชื่อเข้าคลังถาวรทันที
             if (isNewCustomer) {
-                const customerPayload = {
-                    name: custName,
-                    phone: cPhone || null,
-                    bank_name: bName,
-                    bank_account: bAccount,
-                    bank_account_name: bAccountName
-                };
-                await SupabaseDB.upsertCustomer(customerPayload);
+                await SupabaseDB.upsertCustomer({ name: customerName, phone: customerPhoneVal, bank_name: document.getElementById('bankName').value, bank_account: document.getElementById('bankAccount').value.trim(), bank_account_name: document.getElementById('bankAccountName').value.trim() });
             }
-
-            showActionAlert(`🎉 บันทึกธุรกรรมบิลเลขที่ ${txPayload.receipt_number} ลงใน Supabase คลาวด์เรียบร้อยแล้ว!`, "success");
-
+            await SupabaseDB.insertTransaction({
+                receipt_number: document.getElementById('vReceiptNo').innerText,
+                is_new_customer: isNewCustomer ? "ใช่" : "ไม่ใช่",
+                customer_name: isNewCustomer ? `${customerName} (เพิ่มใหม่)` : customerName,
+                customer_phone: customerPhoneVal,
+                bank_name: document.getElementById('bankName').value,
+                bank_account: document.getElementById('bankAccount').value.trim(),
+                bank_account_name: document.getElementById('bankAccountName').value.trim(),
+                amount: amount,
+                amount_thai_text: thaiBaht(amount),
+                transfer_date_time: `${docDate} เวลา ${docTime}`,
+                bill_number: document.getElementById('billNumber').value.trim(),
+                slip_details: document.getElementById('slipDetails').value.trim(),
+                items_remark: document.getElementById('itemsRemark').value.trim(),
+                created_by: document.getElementById('createdBy').value.trim(),
+                print_count: 1
+            });
         } else if (currentAction === 'REPRINT') {
-            const nextCount = reprintCountToSave + 1;
-            await SupabaseDB.updateReprintCount(currentTxId, nextCount);
-            showActionAlert(`🔄 บันทึกประวัติการสั่งพิมพ์ซ้ำ (Reprintครั้งที่ ${nextCount}) สำเร็จ`, "info");
+            await SupabaseDB.updatePrintCount(currentTxId, reprintCountToSave);
         }
 
-        // เปิดคำสั่งปริ้นเตอร์ระบบปฏิบัติการ
-        window.print();
-        
-        // โหลดรายชื่ออัปเดตและล้างหน้าจอเตรียมรับลูกค้าคนถัดไป
-        await loadCustomersCentralMemory();
-        clearForm();
-
+        showActionAlert('✅ ดำเนินการธุรกรรมเรียบร้อย! กำลังเรียกใช้คำสั่งพิมพ์...', 'success');
+        setTimeout(() => { window.print(); clearForm(); loadCustomersData(); }, 800);
     } catch (err) {
-        console.error("❌ เกิดข้อผิดพลาดในขั้นตอนบันทึกส่งค่า:", err);
-        alert("ระบบขัดข้องไม่สามารถบันทึกข้อมูลไปที่ Supabase ได้ชั่วคราว: " + err.message);
-    } finally {
-        document.getElementById('btnConfirmPrintAndSave').disabled = false;
+        console.error("Save Error log:", err);
+        showActionAlert('❌ ไม่สามารถบันทึกข้อมูลได้: ' + err.message + ' (ระบบอนุญาตพิมพ์กรณีฉุกเฉินด่วนได้)', 'danger');
+        setTimeout(() => { window.print(); clearForm(); }, 3000);
     }
 }
 
-/**
- * ดึงและจัดการตารางรายงานหลังบ้านพนักงาน
- */
 async function loadTransactionsReportDashboard() {
-    const tbody = document.getElementById('reportTableBody');
-    tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-secondary fw-bold"><div class="spinner-border spinner-border-sm text-danger me-2"></div> กำลังดึงข้อมูลธุรกรรมล่าสุดจาก Supabase...</td></tr>`;
-    
+    const spinner = document.getElementById('reportSpinner');
+    const tableArea = document.getElementById('reportTableArea');
+    spinner.style.display = 'block'; tableArea.style.display = 'none';
+
     try {
         CENTRAL_TRANSACTIONS_REPORT = await SupabaseDB.fetchTransactionsReport();
         renderReportTable(CENTRAL_TRANSACTIONS_REPORT);
-    } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger py-4fw-bold">❌ ดึงข้อมูลรายงานล้มเหลว: ${e.message}</td></tr>`;
+        spinner.style.display = 'none'; tableArea.style.display = 'block';
+    } catch (err) {
+        console.error("Error loading report:", err);
+        spinner.style.display = 'none';
+        document.getElementById('reportTableBody').innerHTML = `<tr><td colspan="10" class="text-center text-danger py-4 fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> รีพอร์ตล้มเหลว: ${err.message}</td></tr>`;
+        tableArea.style.display = 'block';
     }
 }
 
-/**
- * แสดงตารางรายงานประวัติพร้อมรองรับระบบเปิดดูภาพหลักฐานอัพโหลด 3 รูปจาก LINE OA
- */
 function renderReportTable(items) {
-    const tbody = document.getElementById('reportTableBody');
-    tbody.innerHTML = '';
+    const tbody = document.getElementById('reportTableBody'); tbody.innerHTML = '';
+    if (items.length === 0) { tbody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-muted">ไม่พบข้อมูลประวัติธุรกรรมใดๆ</td></tr>`; return; }
 
-    if (items.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">📭 ไม่พบประวัติรายการโอนเงินในระบบตามเงื่อนไขที่ค้นหา</td></tr>`;
-        return;
-    }
-
-    items.forEach((tx, idx) => {
-        const amt = parseFloat(tx.amount || 0);
+    items.forEach((tx, index) => {
+        const regDate = new Date(tx.timestamp);
+        const regDateTimeStr = regDate.toLocaleDateString('th-TH', { year: '2-digit', month: 'short', day: 'numeric' }) + ' ' + regDate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
         
-        // ปรับการเช็กค่าความว่างเปล่าของสตริงของฟิลด์รูปภาพแบบเข้มงวด ป้องกันปุ่มเบี้ยวกรณีอ้างอิง Null บนฐานข้อมูล
-        let slipBtn = (tx.slip_image_url && tx.slip_image_url.trim() !== '') 
-            ? `<button class="btn btn-sm btn-success py-1 px-2 fs-6 w-full mb-1 text-white" onclick="showAttachmentImage('${tx.slip_image_url}', 'รูปสลิปใบโอนชำระเงิน : ${tx.receipt_number}')"><i class="bi bi-file-image"></i> เปิดดูสลิป</button>` 
-            : `<span class="badge bg-warning text-dark py-1 px-2 mb-1 fw-bold fs-6 w-full text-center d-block"><i class="bi bi-clock"></i> รอรูปสลิป</span>`;
-
-        let receiptBtn = (tx.receipt_image_url && tx.receipt_image_url.trim() !== '') 
-            ? `<button class="btn btn-sm btn-info py-1 px-2 fs-6 w-full mb-1 text-white" onclick="showAttachmentImage('${tx.receipt_image_url}', 'รูปภาพใบเสร็จรับซื้อ : ${tx.receipt_number}')"><i class="bi bi-file-image"></i> เปิดดูใบเสร็จ</button>` 
-            : `<span class="badge bg-warning text-dark py-1 px-2 mb-1 fw-bold fs-6 w-full text-center d-block"><i class="bi bi-clock"></i> รอรูปรับซื้อ</span>`;
-
-        let cargoBtn = (tx.cargo_image_url && tx.cargo_image_url.trim() !== '') 
-            ? `<button class="btn btn-sm btn-primary py-1 px-2 fs-6 w-full text-white" onclick="showAttachmentImage('${tx.cargo_image_url}', 'รูปภาพสินค้า/หน้างานเพิ่มเติม : ${tx.receipt_number}')"><i class="bi bi-file-image"></i> เปิดดูรูปสินค้า</button>` 
-            : `<span class="badge bg-warning text-dark py-1 px-2 fw-bold fs-6 w-full text-center d-block"><i class="bi bi-clock"></i> รอรูปสินค้า</span>`;
+        let slipBtn = (tx.slip_image_url && tx.slip_image_url.trim() !== '') ? `<button class="btn btn-sm btn-success py-1 px-2 fs-6 w-100 mb-1 text-white" onclick="showAttachmentImage('${tx.slip_image_url}', 'รูปสลิปใบโอนชำระเงิน : ${tx.receipt_number}')"><i class="bi bi-file-image"></i> เปิดดูสลิป</button>` : `<span class="badge bg-warning text-dark py-1 px-2 mb-1 fw-bold fs-6 w-100 text-center d-block"><i class="bi bi-clock"></i> รอรูปสลิป</span>`;
+        let receiptBtn = (tx.receipt_image_url && tx.receipt_image_url.trim() !== '') ? `<button class="btn btn-sm btn-info py-1 px-2 fs-6 w-100 mb-1 text-white" onclick="showAttachmentImage('${tx.receipt_image_url}', 'รูปภาพใบเสร็จรับซื้อ : ${tx.receipt_number}')"><i class="bi bi-file-image"></i> เปิดดูใบเสร็จ</button>` : `<span class="badge bg-warning text-dark py-1 px-2 mb-1 fw-bold fs-6 w-100 text-center d-block"><i class="bi bi-clock"></i> รอรูปรับซื้อ</span>`;
+        let cargoBtn = (tx.cargo_image_url && tx.cargo_image_url.trim() !== '') ? `<button class="btn btn-sm btn-primary py-1 px-2 fs-6 w-100 text-white" onclick="showAttachmentImage('${tx.cargo_image_url}', 'รูปภาพสินค้า/หน้างานเพิ่มเติม : ${tx.receipt_number}')"><i class="bi bi-file-image"></i> เปิดดูรูปสินค้า</button>` : `<span class="badge bg-warning text-dark py-1 px-2 fw-bold fs-6 w-100 text-center d-block"><i class="bi bi-clock"></i> รอรูปสินค้า</span>`;
+        
+        let nameBadge = (tx.is_new_customer && tx.is_new_customer.indexOf("ใช่") !== -1) ? `<span class="badge bg-danger text-white py-1 px-2 me-1 fs-6">ใหม่</span> ${tx.customer_name}` : tx.customer_name;
+        const displayPhone = tx.customer_phone ? `<br><small class="text-muted"><i class="bi bi-telephone-fill"></i> ${tx.customer_phone}</small>` : '<br><small class="text-muted">-</small>';
 
         const tr = document.createElement('tr');
-        tr.style.fontSize = "1.08rem";
         tr.innerHTML = `
-            <td class="text-center fw-bold">${idx + 1}</td>
-            <td class="small fw-bold text-secondary">${tx.transfer_date_time || '-'}</td>
-            <td class="fw-bold text-danger">${tx.receipt_number || '-'}</td>
-            <td>
-                <span class="fw-bold d-block">${tx.customer_name || '-'}</span>
-                <small class="text-muted d-block" style="font-size:0.85rem;">${tx.bank_name || '-'} : ${tx.bank_account || '-'}</small>
-                <small class="text-secondary d-block" style="font-size:0.85rem;">ชื่อบัญชี: ${tx.bank_account_name || '-'}</small>
-            </td>
-            <td class="text-end fw-bold text-primary">${amt.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
-            <td class="small text-muted">${tx.items_remark || '-'}</td>
-            <td class="text-center" style="min-width:130px;">
-                ${slipBtn}
-                ${receiptBtn}
-                ${cargoBtn}
-            </td>
-            <td class="text-center"><span class="badge bg-dark px-2 py-1 fs-6">${tx.reprint_count || 1} ครั้ง</span></td>
-            <td class="text-center">
-                <button class="btn btn-sm btn-danger fw-bold text-white px-2 py-1" onclick="triggerReprintFlow('${tx.id}')">
-                    <i class="bi bi-printer-fill"></i> พิมพ์ซ้ำ
-                </button>
-            </td>
+            <td class="text-center fw-bold">${index + 1}</td>
+            <td style="font-size: 1.1rem; color: #475569;">${regDateTimeStr}</td><td class="text-danger fw-bold">${tx.receipt_number}</td><td>${nameBadge}${displayPhone}</td>
+            <td class="text-end text-success fw-bold fs-5">${parseFloat(tx.amount || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
+            <td style="font-size: 1.1rem;"><span class="badge bg-secondary mb-1">${tx.bank_name || '-'}</span><br><span class="text-break">${tx.bank_account || '-'}</span><br><span class="text-muted text-break">${tx.bank_account_name || '-'}</span></td>
+            <td class="text-center"><span class="badge bg-dark fs-6">${tx.print_count || 1} ครั้ง</span></td><td class="text-muted" style="font-size: 1.1rem;">${tx.created_by || '-'}</td>
+            <td><div class="d-flex flex-column">${slipBtn}${receiptBtn}${cargoBtn}</div></td>
+            <td class="text-center"><button class="btn btn-outline-danger btn-sm w-100 py-2 fs-6" onclick="reprintFromReport('${tx.id}')"><i class="bi bi-printer-fill"></i> พิมพ์ซ้ำ</button></td>
         `;
         tbody.appendChild(tr);
     });
@@ -352,93 +382,77 @@ function renderReportTable(items) {
 
 function filterReportTable() {
     const keyword = document.getElementById('reportSearch').value.toLowerCase().trim();
-    const filterDate = document.getElementById('filterDate').value;
+    const startDateVal = document.getElementById('reportStartDate').value;
+    const endDateVal = document.getElementById('reportEndDate').value;
 
-    const filtered = CENTRAL_TRANSACTIONS_REPORT.filter(tx => {
-        const matchKeyword = 
-            (tx.receipt_number && tx.receipt_number.toLowerCase().includes(keyword)) ||
-            (tx.customer_name && tx.customer_name.toLowerCase().includes(keyword)) ||
-            (tx.bank_account && tx.bank_account.includes(keyword)) ||
-            (tx.items_remark && tx.items_remark.toLowerCase().includes(keyword));
-
+    const filtered = CENTRAL_TRANSACTIONS_REPORT.filter((tx) => {
+        const matchSearch = tx.receipt_number.toLowerCase().includes(keyword) || tx.customer_name.toLowerCase().includes(keyword) || (tx.customer_phone && tx.customer_phone.includes(keyword)) || (tx.created_by && tx.created_by.toLowerCase().includes(keyword));
         let matchDate = true;
-        if (filterDate && tx.transfer_date_time) {
-            matchDate = tx.transfer_date_time.includes(filterDate);
+        if (tx.timestamp) {
+            const txDate = new Date(tx.timestamp); txDate.setHours(0,0,0,0);
+            if (startDateVal) { const start = new Date(startDateVal); start.setHours(0,0,0,0); if (txDate < start) matchDate = false; }
+            if (endDateVal) { const end = new Date(endDateVal); end.setHours(0,0,0,0); if (txDate > end) matchDate = false; }
         }
-
-        return matchKeyword && matchDate;
+        return matchSearch && matchDate;
     });
-
     renderReportTable(filtered);
 }
 
-/**
- * เรียกเปิดแสดง Modal ดูภาพหลักฐานแนบ สั่งงานผ่าน Utility คัดกรองประเภทลิงก์
- */
-function showAttachmentImage(rawUrl, titleText) {
-    const processedUrl = getDirectGoogleDriveUrl(rawUrl);
-    document.getElementById('imageModalLabel').innerText = titleText;
-    
-    const container = document.getElementById('modalImageContainer');
-    container.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-danger"></div><p class="text-muted mt-2">กำลังโหลดรูปภาพหลักฐาน...</p></div>`;
-    
+function clearReportFilters() {
+    document.getElementById('reportSearch').value = ''; document.getElementById('reportStartDate').value = ''; document.getElementById('reportEndDate').value = '';
+    renderReportTable(CENTRAL_TRANSACTIONS_REPORT);
+}
+
+function showAttachmentImage(url, title) {
+    document.getElementById('imageModalTitle').innerText = title;
+    document.getElementById('imageModalTarget').src = getDirectGoogleDriveUrl(url);
+    document.getElementById('imageModalDownloadLink').href = url;
+    if (!imageModalObj) imageModalObj = new bootstrap.Modal(document.getElementById('imageModal'));
     imageModalObj.show();
-
-    const img = new Image();
-    img.src = processedUrl;
-    img.className = "img-fluid img-thumbnail rounded shadow-sm mx-auto d-block";
-    img.style.maxHeight = "72vh";
-    
-    img.onload = () => { container.innerHTML = ''; container.appendChild(img); };
-    img.onerror = () => { container.innerHTML = `<div class="alert alert-danger border-2 text-center my-3"><i class="bi bi-exclamation-triangle-fill fs-3 d-block mb-2"></i> ไม่สามารถดึงรูปภาพจาก LINE หรือ Supabase Storage ได้ภายนอก<br><a href="${processedUrl}" target="_blank" class="btn btn-sm btn-outline-danger mt-3 fw-bold">คลิกที่นี่เพื่อเปิดลิงก์ตรงภายนอก</a></div>`; };
 }
 
-/**
- * เรียกประวัติเก่าขึ้นมาจัดตำแหน่งเลเอาท์หน้าบิลเพื่อเตรียมส่งเข้าเครื่องพิมพ์สลิปอีกครั้ง
- */
-function triggerReprintFlow(txId) {
-    const tx = CENTRAL_TRANSACTIONS_REPORT.find(item => item.id === txId);
-    if (!tx) return;
+function reprintFromReport(txId) {
+    const tx = CENTRAL_TRANSACTIONS_REPORT.find(t => t.id === txId); if (!tx) return;
+    currentAction = 'REPRINT'; currentTxId = txId; reprintCountToSave = (tx.print_count || 1) + 1;
 
-    currentAction = 'REPRINT';
-    currentTxId = tx.id;
-    reprintCountToSave = tx.reprint_count || 1;
+    toggleReprintWidgets(true);
+    document.getElementById('vReprintCount').innerText = reprintCountToSave; document.getElementById('vReprintCountCopy').innerText = reprintCountToSave;
+    document.getElementById('pReprintCount').innerText = reprintCountToSave; document.getElementById('pReprintCountCopy').innerText = reprintCountToSave;
 
-    document.getElementById('pReceiptNo').innerText = tx.receipt_number || '-';
-    document.getElementById('pDate').innerText = tx.transfer_date_time || '-';
-    document.getElementById('pCustName').innerText = tx.customer_name || '-';
-    document.getElementById('pPhone').innerText = '-'; 
-    document.getElementById('pBankInfo').innerText = `${tx.bank_name || '-'} (เลขบัญชี: ${tx.bank_account || '-'})`;
-    document.getElementById('pBankAccName').innerText = tx.bank_account_name || '-';
-    
-    const amt = parseFloat(tx.amount || 0);
-    document.getElementById('pAmount').innerText = amt.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    document.getElementById('pAmountThai').innerText = tx.amount_thai_text || thaiBaht(amt);
-    document.getElementById('pBillNo').innerText = tx.bill_number || '-';
-    document.getElementById('pSlip').innerText = tx.slip_details || '-';
-    document.getElementById('pRemark').innerText = tx.items_remark || '-';
-    document.getElementById('pPrintTime').innerText = new Date().toLocaleString('th-TH') + " (พนักงานพิมพ์ซ้ำ)";
+    const now = new Date();
+    const slipData = {
+        receiptNo: tx.receipt_number, customerName: tx.customer_name, customerPhone: tx.customer_phone || '-',
+        billNo: tx.bill_number || '-', bankName: tx.bank_name || '-', bankAccount: tx.bank_account || '-', bankAccountName: tx.bank_account_name || '-',
+        itemsRemark: tx.items_remark || '-', slipDetails: tx.slip_details || '-', createdBy: tx.created_by || '-', formattedDate: tx.transfer_date_time || '-',
+        finalPrintTimestamp: `${now.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })} ${now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} น.`,
+        formattedAmount: parseFloat(tx.amount).toLocaleString('th-TH', { minimumFractionDigits: 2 }) + ' บาท', thaiBahtText: tx.amount_thai_text || thaiBaht(tx.amount)
+    };
 
-    document.getElementById("qrcode").innerHTML = "";
-    new QRCode(document.getElementById("qrcode"), {
-        text: tx.receipt_number || "RE-ERROR",
-        width: 110,
-        height: 110
-    });
+    const isCustNew = tx.is_new_customer && tx.is_new_customer.indexOf("ใช่") !== -1;
+    document.getElementById('vNewCustWarning').style.display = isCustNew ? 'block' : 'none';
+    document.getElementById('vNewCustWarningCopy').style.display = isCustNew ? 'block' : 'none';
+    document.getElementById('pNewCustWarning').style.display = isCustNew ? 'block' : 'none';
+    document.getElementById('pNewCustWarningCopy').style.display = isCustNew ? 'block' : 'none';
 
-    previewModalObj.show();
+    distributeSlipData('v', '', slipData); distributeSlipData('v', 'Copy', slipData);
+    distributeSlipData('p', '', slipData); distributeSlipData('p', 'Copy', slipData);
+    renderReceiptQrCode(slipData.receiptNo);
 }
 
-function checkUserSession() {
-    console.log("🔒 ระบบรักษาความปลอดภัยเคาน์เตอร์เริ่มทำงานตามปกติ...");
+function toggleReprintWidgets(show) {
+    const displayStyle = show ? 'block' : 'none';
+    document.getElementById('vReprintStatus').style.display = displayStyle; document.getElementById('vReprintStatusCopy').style.display = displayStyle;
+    document.getElementById('pReprintStatus').style.display = displayStyle; document.getElementById('pReprintStatusCopy').style.display = displayStyle;
+}
+
+function lockFormFields(shouldLock) {
+    document.getElementById('customerName').readOnly = shouldLock; document.getElementById('customerPhone').readOnly = shouldLock;
+    document.getElementById('bankName').readOnly = shouldLock; document.getElementById('bankAccount').readOnly = shouldLock; document.getElementById('bankAccountName').readOnly = shouldLock;
 }
 
 function clearFormValues() {
-    document.getElementById('customerName').value = ''; 
-    document.getElementById('customerPhone').value = '';
-    document.getElementById('bankName').value = ''; 
-    document.getElementById('bankAccount').value = ''; 
-    document.getElementById('bankAccountName').value = '';
+    document.getElementById('customerName').value = ''; document.getElementById('customerPhone').value = '';
+    document.getElementById('bankName').value = ''; document.getElementById('bankAccount').value = ''; document.getElementById('bankAccountName').value = '';
 }
 
 function initDateTime() {
@@ -454,16 +468,14 @@ function initDateTime() {
 function showActionAlert(msg, type) {
     const container = document.getElementById('alertContainer');
     if (container) {
-        container.innerHTML = `<div class="alert alert-${type} border-2 p-3" role="alert" style=\"font-size: 1.11rem; font-weight:700;\">${msg}</div>`;
+        container.innerHTML = `<div class="alert alert-${type} border-2 p-3" role="alert" style="font-size: 1.11rem; font-weight:700;">${msg}</div>`;
         container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 }
 
 function clearForm() {
-    document.getElementById('paymentForm').reset(); 
-    initDateTime();
-    document.getElementById('customerSearchInput').value = ''; 
-    lockFormFields(true); 
-    isNewCustomer = false;
-    document.getElementById('customerStatusBadge').innerHTML = `<span class="badge bg-secondary border-0 px-3 py-2"><i class="bi bi-search"></i> กรุณาพิมพ์ค้นหารายชื่อเพื่อเปิดระบบล็อกฟอร์ม</span>`;
+    document.getElementById('paymentForm').reset(); initDateTime();
+    document.getElementById('customerSearchInput').value = ''; lockFormFields(true); isNewCustomer = false;
+    document.getElementById('customerBadge').className = "badge bg-secondary";
+    document.getElementById('customerBadge').textContent = "รอลูกค้าใหม่";
 }
