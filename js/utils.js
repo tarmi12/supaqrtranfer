@@ -50,25 +50,21 @@ function thaiBaht(num) {
 }
 
 /**
- * แกะวิเคราะห์และแปลงลิงก์รูปภาพ รองรับ Supabase URL, LINE CDN และแปลง Google Drive ให้แสดงผลได้ทันที
- * @param {string} url ลิงก์จากฐานข้อมูล
- * @returns {string} URL รูปภาพที่พร้อมใช้งานในแท็ก img
+ * 🌟 ฟังก์ชันแกะลิงก์ Google Drive ไปแสดงผลในหน้าเว็บคอมพิวเตอร์ (เวอร์ชันซ่อมเครื่องหมาย $)
  */
 function getDirectGoogleDriveUrl(url) {
     if (!url) return '';
     const cleanUrl = url.trim();
     
-    // 🌟 [แก้ปัญหาภาพแตก]: ตรวจจับถ้าเป็นลิงก์ดึงภาพของ LINE API โดยตรง 
-    // หน้าบ้านจะทำการเรียกภาพผ่านเซิร์ฟเวอร์ proxy เสริมเพื่อไม่ให้ติดสิทธิ์ความปลอดภัย CORS ข้ามโดเมน รูปจะขึ้นพรีวิวได้ทันทีครับ
-    if (cleanUrl.includes('api-data.line.me') || cleanUrl.includes('api.line.me')) {
+    // ถ้าเป็นรูปภาพแบบ Base64 หรือโดเมนพรีวิวตรง lh3 อยู่แล้ว ให้ใช้งานได้ทันที
+    if (cleanUrl.startsWith('data:image') || cleanUrl.includes('lh3.googleusercontent.com')) {
         return cleanUrl;
     }
     
-    if (cleanUrl.includes('supabase.co') || cleanUrl.includes('line-apps.com') || cleanUrl.includes('lh3.googleusercontent.com') || cleanUrl.startsWith('data:image')) {
+    if (cleanUrl.includes('supabase.co') || cleanUrl.includes('line-apps.com')) {
         return cleanUrl;
     }
     
-    // แกะรหัสไอดีของรูปภาพจากลิงก์แชร์ของ Google Drive
     let fileId = '';
     const regLongFormat = /\/file\/d\/([^\/]+)/;
     const regQueryFormat = /[?&]id=([^&]+)/;
@@ -77,10 +73,14 @@ function getDirectGoogleDriveUrl(url) {
         fileId = cleanUrl.match(regLongFormat)[1];
     } else if (regQueryFormat.test(cleanUrl)) {
         fileId = cleanUrl.match(regQueryFormat)[1];
+    } else if (cleanUrl.length > 15 && !cleanUrl.includes('/') && !cleanUrl.includes('.')) {
+        // ถ้าระบบส่งรหัส ID ไฟล์มาดิบๆ จากหลังบ้าน
+        fileId = cleanUrl;
     }
 
+    // 🌟 แก้ไขเสร็จสิ้น: ใส่เครื่องหมาย $ หน้าปีกกาให้เรียบร้อยเพื่อดึงข้อมูลรูปภาพจาก Drive ขึ้นหน้าเว็บพรีวิว
     if (fileId) {
-        return `https://drive.google.com/uc?export=view&id=${fileId}`;
+        return `https://lh3.googleusercontent.com/d/${fileId}`;
     }
 
     return cleanUrl;
