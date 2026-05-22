@@ -1,5 +1,5 @@
 // ==========================================
-// 🚀 APPLICATION CONTROLLER (สมองกลควบคุมหลัก - แก้ไข Bug ล็อกอินนิ่งค้าง)
+// 🚀 APPLICATION CONTROLLER (สมองกลควบคุมหลัก - เวอร์ชันซ่อมระบบตรวจจับลูกค้าเก่า)
 // ==========================================
 
 let CENTRAL_CUSTOMER_DB = [];
@@ -12,11 +12,11 @@ let currentAction = 'CREATE'; // 'CREATE' หรือ 'REPRINT'
 let currentTxId = null;
 let reprintCountToSave = 1;
 
+// 🟢 ส่วนเริ่มต้นคำสั่งเมื่อเบราว์เซอร์โหลดหน้าเว็บเสร็จ
 document.addEventListener("DOMContentLoaded", () => {
-    // 🌟 ย้ายระบบตรวจสอบความปลอดภัยมาเริ่มรันตรงนี้หลังจากหน้าจอโหลดเสร็จชัวร์ๆ ป้องกันค้าง
-    checkUserSession(); 
+    checkUserSession(); // ตรวจสอบสิทธิ์การเข้าใช้งาน
 
-    // ผูกเหตุการณ์หน้าฟอร์ม
+    // ผูกเหตุการณ์หน้าฟอร์มบันทึก
     document.getElementById('customerSearchInput').addEventListener('focus', showCustomerDropdown);
     document.getElementById('customerSearchInput').addEventListener('input', filterCustomerSearch);
     document.getElementById('btnToggleDropdown').addEventListener('click', toggleCustomerDropdown);
@@ -24,16 +24,13 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('btnClearForm').addEventListener('click', clearForm);
     document.getElementById('btnConfirmPrintAndSave').addEventListener('click', confirmPrintAndSave);
 
-    // ผูกเหตุการณ์หน้ารายงาน
+    // ผูกเหตุการณ์หน้ารายงานแดชบอร์ด
     document.getElementById('report-tab').addEventListener('click', loadTransactionsReportDashboard);
     document.getElementById('btnRefreshReport').addEventListener('click', loadTransactionsReportDashboard);
     document.getElementById('reportSearch').addEventListener('keyup', filterReportTable);
     document.getElementById('reportStartDate').addEventListener('change', filterReportTable);
     document.getElementById('reportEndDate').addEventListener('change', filterReportTable);
     document.getElementById('btnClearReportFilter').addEventListener('click', clearReportFilters);
-    
-    // ผูกเหตุการณ์ฟอร์มล็อกอิน
-    document.getElementById('loginForm').addEventListener('submit', handleLoginSubmit);
 });
 
 // ==========================================
@@ -43,6 +40,7 @@ async function checkUserSession() {
     try {
         const { data: { session }, error } = await supabaseClient.auth.getSession();
         if (error) throw error;
+        
         if (session) {
             onAuthSuccess(session.user);
         } else {
@@ -54,7 +52,6 @@ async function checkUserSession() {
     }
 }
 
-// รับฟังสถานะความปลอดภัยเมื่อมีการกดล็อกอินสำเร็จจากผู้ใช้งาน
 supabaseClient.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_IN' && session) {
         onAuthSuccess(session.user);
@@ -66,14 +63,10 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
 function onAuthSuccess(user) {
     document.getElementById('loginSection').style.display = 'none';
     document.getElementById('appMainSection').style.display = 'block';
+    document.getElementById('logoutBtn').style.display = 'block';
+    document.getElementById('logoutBtn').addEventListener('click', handleLogout);
     
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.style.display = 'block';
-        logoutBtn.onclick = handleLogout; // เปลี่ยนมาผูก Event ปลอดภัยกว่า
-    }
-    
-    const userEmailPrefix = user.email ? user.email.split('@')[0] : "พนักงานหน้าร้าน";
+    const userEmailPrefix = user.email.split('@')[0];
     document.getElementById('createdBy').value = userEmailPrefix;
 
     initDateTime();
@@ -82,10 +75,9 @@ function onAuthSuccess(user) {
 
 function onAuthRequired() {
     document.getElementById('appMainSection').style.display = 'none';
-    if (document.getElementById('logoutBtn')) {
-        document.getElementById('logoutBtn').style.display = 'none';
-    }
+    document.getElementById('logoutBtn').style.display = 'none';
     document.getElementById('loginSection').style.display = 'block';
+    document.getElementById('loginForm').addEventListener('submit', handleLoginSubmit);
 }
 
 async function handleLoginSubmit(e) {
@@ -97,19 +89,14 @@ async function handleLoginSubmit(e) {
 
     alertContainer.innerHTML = '';
     submitBtn.disabled = true;
-    submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span> ตรวจสอบสิทธิ์หลังบ้าน...`;
+    submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span> ตรวจสอบสิทธิ์...`;
 
     try {
-        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        
-        // หากเข้าระบบผ่าน ให้รีเฟรชสิทธิ์เรียกเซสชันทำงานทันที
-        if (data.user) {
-            onAuthSuccess(data.user);
-        }
     } catch (err) {
         console.error("Login failed:", err.message);
-        alertContainer.innerHTML = `<div class="alert alert-danger border-2 p-3 fw-bold fs-6"><i class="bi bi-shield-slash-fill me-1"></i> รหัสผ่านผิดพลาด หรือ บัญชีผู้ใช้นี้ไม่มีในระบบ Supabase!</div>`;
+        alertContainer.innerHTML = `<div class="alert alert-danger border-2 p-3 fw-bold fs-6"><i class="bi bi-shield-slash-fill me-1"></i> รหัสผ่านไม่ถูกต้อง!</div>`;
         submitBtn.disabled = false;
         submitBtn.innerHTML = `<i class="bi bi-box-arrow-in-right me-1"></i> เข้าสู่ระบบทันที`;
     }
@@ -119,7 +106,6 @@ async function handleLogout() {
     try {
         const { error } = await supabaseClient.auth.signOut();
         if (error) throw error;
-        onAuthRequired();
     } catch (err) {
         console.error("Logout error:", err.message);
         onAuthRequired();
@@ -132,7 +118,7 @@ async function handleLogout() {
 async function loadCustomersData() {
     try {
         CENTRAL_CUSTOMER_DB = await SupabaseDB.fetchCustomers();
-        showActionAlert('⚡ อัปเดตคลังรายชื่อลูกค้าจาก Supabase ล่าสุดเรียบร้อย!', 'success');
+        showActionAlert('⚡ อัปเดตคลังรายชื่อลูกค้าล่าสุดเรียบร้อย!', 'success');
         document.getElementById('customerSearchInput').placeholder = `🔍 พิมพ์ค้นหาจากคลังลูกค้า (${CENTRAL_CUSTOMER_DB.length} รายชื่อ)...`;
     } catch (err) {
         console.error("Error loading customers:", err);
@@ -166,12 +152,16 @@ function filterCustomerSearch() {
 
     let filteredList = CENTRAL_CUSTOMER_DB;
     if (keyword !== '' && !keyword.startsWith('➕')) {
-        filteredList = CENTRAL_CUSTOMER_DB.filter(c => 
-            c.name.toLowerCase().includes(keyword) ||
-            (c.phone && c.phone.includes(keyword)) ||
-            (c.bank_name && c.bank_name.toLowerCase().includes(keyword)) ||
-            (c.bank_account && c.bank_account.includes(keyword))
-        );
+        filteredList = CENTRAL_CUSTOMER_DB.filter(c => {
+            // 🛠️ แก้ไข: รองรับคีย์ตัวแปรทั้งแบบสไตล์เก่า (c.bank/c.account) และสไตล์ใหม่
+            const bName = c.bank_name || c.bank || "";
+            const bAcc = c.bank_account || c.account || "";
+            const pPhone = c.phone || "";
+            return c.name.toLowerCase().includes(keyword) || 
+                   pPhone.includes(keyword) || 
+                   bName.toLowerCase().includes(keyword) || 
+                   bAcc.includes(keyword);
+        });
     }
 
     if (filteredList.length === 0) {
@@ -182,14 +172,20 @@ function filterCustomerSearch() {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'search-item d-flex flex-column align-items-start';
+            
             let phoneBadge = cust.phone ? `<span class="badge bg-light text-dark border ms-2"><i class="bi bi-telephone-fill"></i> ${cust.phone}</span>` : '';
-            let bankBadge = cust.bank_name ? `<span class="badge bg-secondary text-white ms-2">${cust.bank_name}</span>` : '';
+            
+            // 🛠️ แก้ไข: การดึงชื่อธนาคารและเลขบัญชีให้รองรับตัวแปรจาก Google Sheets เพื่อนำมาแสดงใน Dropdown
+            let bName = cust.bank_name || cust.bank || '-';
+            let bAcc = cust.bank_account || cust.account || '-';
+            let bAccName = cust.bank_account_name || cust.accountName || '-';
+            let bankBadge = bName !== '-' ? `<span class="badge bg-secondary text-white ms-2">${bName}</span>` : '';
 
             btn.innerHTML = `
                 <div class="d-flex w-100 justify-content-between align-items-center">
                     <strong class="text-dark fs-5">${cust.name}</strong><div>${phoneBadge}${bankBadge}</div>
                 </div>
-                <small class="text-muted mt-1" style="font-size: 0.95rem;"><i class="bi bi-credit-card-2-front"></i> บัญชี: ${cust.bank_account || '-'} | ชื่อบัญชี: ${cust.bank_account_name || '-'}</small>
+                <small class="text-muted mt-1" style="font-size: 0.95rem;"><i class="bi bi-credit-card-2-front"></i> บัญชี: ${bAcc} | ชื่อบัญชี: ${bAccName}</small>
             `;
             btn.onclick = () => selectCustomerItem(originalIndex);
             dropdown.appendChild(btn);
@@ -211,12 +207,14 @@ function selectCustomerItem(indexValue) {
         lockFormFields(true);
         const c = CENTRAL_CUSTOMER_DB[parseInt(indexValue)];
         if (c) {
+            // 🛠️ แก้ไขสำคัญ: ดึงค่าและแมปค่าตัวแปรให้ถูกต้องทั้งสองระบบ เพื่อนำค่ามาหยอดลงช่องอินพุตในฟอร์ม
             searchInput.value = c.name;
             document.getElementById('customerName').value = c.name;
             document.getElementById('customerPhone').value = c.phone || '';
-            document.getElementById('bankName').value = c.bank_name || '';
-            document.getElementById('bankAccount').value = c.bank_account || '';
-            document.getElementById('bankAccountName').value = c.bank_account_name || '';
+            document.getElementById('bankName').value = c.bank_name || c.bank || '';
+            document.getElementById('bankAccount').value = c.bank_account || c.account || '';
+            document.getElementById('bankAccountName').value = c.bank_account_name || c.accountName || '';
+            
             isNewCustomer = false;
             document.getElementById('customerBadge').className = "badge bg-success";
             document.getElementById('customerBadge').textContent = "ลูกค้าในคลัง";
@@ -234,6 +232,9 @@ document.addEventListener('click', (e) => {
     }
 });
 
+// ==========================================
+// 🔄 ระบบเรนเดอร์จัดพิมพ์สลิปคู่
+// ==========================================
 function distributeSlipData(basePrefix, suffix, data) {
     document.getElementById(`${basePrefix}ReceiptNo${suffix}`).innerText = data.receiptNo;
     document.getElementById(`${basePrefix}Customer${suffix}`).innerText = data.customerName;
@@ -258,14 +259,6 @@ function handleFormSubmit(e) {
     e.preventDefault();
     if (!document.getElementById('customerName').value.trim() || isNaN(parseFloat(document.getElementById('amount').value))) {
         showActionAlert('⚠️ กรุณากรอกข้อมูลให้ครบถ้วนก่อนตรวจสอบ', 'warning'); return;
-    }
-
-    const cName = document.getElementById('customerName').value.trim();
-    const bAcc = document.getElementById('bankAccount').value.trim();
-    
-    const checkCust = CENTRAL_CUSTOMER_DB.find(c => c.name.trim() === cName || (c.bank_account && c.bank_account.trim() === bAcc));
-    if (checkCust) {
-        isNewCustomer = false;
     }
 
     currentAction = 'CREATE'; currentTxId = null; reprintCountToSave = 1;
@@ -318,7 +311,7 @@ function renderReceiptQrCode(receiptNo) {
 
 async function confirmPrintAndSave() {
     if (previewModalObj) previewModalObj.hide();
-    showActionAlert('⏳ กำลังบันทึกข้อมูลธุรกรรมลง Supabase Database...', 'info');
+    showActionAlert('⏳ กำลังบันทึกข้อมูลธุรกรรมลงระบบจัดเก็บข้อมูล...', 'info');
 
     const customerName = document.getElementById('customerName').value.trim();
     const customerPhoneVal = document.getElementById('customerPhone').value.trim();
@@ -333,7 +326,7 @@ async function confirmPrintAndSave() {
             }
             await SupabaseDB.insertTransaction({
                 receipt_number: document.getElementById('vReceiptNo').innerText,
-                is_new_customer: isNewCustomer ? "ใช่" : "ไม่ใช่",
+                is_new_customer: isNewCustomer ? "ใช่ (พนักงานคีย์เองที่หน้าจอ)" : "ไม่ใช่ (เลือกจากฐานข้อมูล)",
                 customer_name: isNewCustomer ? `${customerName} (เพิ่มใหม่)` : customerName,
                 customer_phone: customerPhoneVal,
                 bank_name: document.getElementById('bankName').value,
@@ -361,6 +354,9 @@ async function confirmPrintAndSave() {
     }
 }
 
+// ==========================================
+// 📊 ระบบหน้ารายงานสรุปแดชบอร์ด
+// ==========================================
 async function loadTransactionsReportDashboard() {
     const spinner = document.getElementById('reportSpinner');
     const tableArea = document.getElementById('reportTableArea');
@@ -373,35 +369,34 @@ async function loadTransactionsReportDashboard() {
     } catch (err) {
         console.error("Error loading report:", err);
         spinner.style.display = 'none';
-        document.getElementById('reportTableBody').innerHTML = `<tr><td colspan="10" class="text-center text-danger py-4 fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> รีพอร์ตล้มเหลว: ${err.message}</td></tr>`;
+        document.getElementById('reportTableBody').innerHTML = `<tr><td colspan="9" class="text-center text-danger py-4 fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> รีพอร์ตล้มเหลว: ${err.message}</td></tr>`;
         tableArea.style.display = 'block';
     }
 }
 
 function renderReportTable(items) {
     const tbody = document.getElementById('reportTableBody'); tbody.innerHTML = '';
-    if (items.length === 0) { tbody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-muted">ไม่พบข้อมูลประวัติธุรกรรมใดๆ</td></tr>`; return; }
+    if (items.length === 0) { tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">ไม่พบข้อมูลประวัติธุรกรรมใดๆ</td></tr>`; return; }
 
-    items.forEach((tx, index) => {
+    items.forEach((tx) => {
         const regDate = new Date(tx.timestamp);
         const regDateTimeStr = regDate.toLocaleDateString('th-TH', { year: '2-digit', month: 'short', day: 'numeric' }) + ' ' + regDate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
         
-        let slipBtn = (tx.slip_image_url && tx.slip_image_url.trim() !== '') ? `<button class="btn btn-sm btn-success py-1 px-2 fs-6 w-100 mb-1 text-white" onclick="showAttachmentImage('${tx.slip_image_url}', 'รูปสลิปใบโอนชำระเงิน : ${tx.receipt_number}')"><i class="bi bi-file-image"></i> เปิดดูสลิป</button>` : `<span class="badge bg-warning text-dark py-1 px-2 mb-1 fw-bold fs-6 w-100 text-center d-block"><i class="bi bi-clock"></i> รอรูปสลิป</span>`;
-        let receiptBtn = (tx.receipt_image_url && tx.receipt_image_url.trim() !== '') ? `<button class="btn btn-sm btn-info py-1 px-2 fs-6 w-100 mb-1 text-white" onclick="showAttachmentImage('${tx.receipt_image_url}', 'รูปภาพใบเสร็จรับซื้อ : ${tx.receipt_number}')"><i class="bi bi-file-image"></i> เปิดดูใบเสร็จ</button>` : `<span class="badge bg-warning text-dark py-1 px-2 mb-1 fw-bold fs-6 w-100 text-center d-block"><i class="bi bi-clock"></i> รอรูปรับซื้อ</span>`;
-        let cargoBtn = (tx.cargo_image_url && tx.cargo_image_url.trim() !== '') ? `<button class="btn btn-sm btn-primary py-1 px-2 fs-6 w-100 text-white" onclick="showAttachmentImage('${tx.cargo_image_url}', 'รูปภาพสินค้า/หน้างานเพิ่มเติม : ${tx.receipt_number}')"><i class="bi bi-file-image"></i> เปิดดูรูปสินค้า</button>` : `<span class="badge bg-warning text-dark py-1 px-2 fw-bold fs-6 w-100 text-center d-block"><i class="bi bi-clock"></i> รอรูปสินค้า</span>`;
+        let slipBtn = (tx.slip_image_url && tx.slip_image_url.trim() !== '') ? `<button class="btn btn-sm btn-success py-1 px-2 fs-6 w-full mb-1 text-white" onclick="showAttachmentImage('${tx.slip_image_url}', 'รูปสลิปใบโอนชำระเงิน : ${tx.receipt_number}')"><i class="bi bi-file-image"></i> เปิดดูสลิป</button>` : `<span class="badge bg-warning text-dark py-1 px-2 mb-1 fw-bold fs-6 w-full text-center d-block"><i class="bi bi-clock"></i> รอรูปสลิป</span>`;
+        let receiptBtn = (tx.receipt_image_url && tx.receipt_image_url.trim() !== '') ? `<button class="btn btn-sm btn-info py-1 px-2 fs-6 w-full mb-1 text-white" onclick="showAttachmentImage('${tx.receipt_image_url}', 'รูปภาพใบเสร็จรับซื้อ : ${tx.receipt_number}')"><i class="bi bi-file-image"></i> เปิดดูใบเสร็จ</button>` : `<span class="badge bg-warning text-dark py-1 px-2 mb-1 fw-bold fs-6 w-full text-center d-block"><i class="bi bi-clock"></i> รอรูปรับซื้อ</span>`;
+        let cargoBtn = (tx.cargo_image_url && tx.cargo_image_url.trim() !== '') ? `<button class="btn btn-sm btn-primary py-1 px-2 fs-6 w-full text-white" onclick="showAttachmentImage('${tx.cargo_image_url}', 'รูปภาพสินค้า/หน้างานเพิ่มเติม : ${tx.receipt_number}')"><i class="bi bi-file-image"></i> เปิดดูรูปสินค้า</button>` : `<span class="badge bg-warning text-dark py-1 px-2 fw-bold fs-6 w-full text-center d-block"><i class="bi bi-clock"></i> รอรูปสินค้า</span>`;
         
         let nameBadge = (tx.is_new_customer && tx.is_new_customer.indexOf("ใช่") !== -1) ? `<span class="badge bg-danger text-white py-1 px-2 me-1 fs-6">ใหม่</span> ${tx.customer_name}` : tx.customer_name;
         const displayPhone = tx.customer_phone ? `<br><small class="text-muted"><i class="bi bi-telephone-fill"></i> ${tx.customer_phone}</small>` : '<br><small class="text-muted">-</small>';
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td class="text-center fw-bold">${index + 1}</td>
             <td style="font-size: 1.1rem; color: #475569;">${regDateTimeStr}</td><td class="text-danger fw-bold">${tx.receipt_number}</td><td>${nameBadge}${displayPhone}</td>
             <td class="text-end text-success fw-bold fs-5">${parseFloat(tx.amount || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
             <td style="font-size: 1.1rem;"><span class="badge bg-secondary mb-1">${tx.bank_name || '-'}</span><br><span class="text-break">${tx.bank_account || '-'}</span><br><span class="text-muted text-break">${tx.bank_account_name || '-'}</span></td>
             <td class="text-center"><span class="badge bg-dark fs-6">${tx.print_count || 1} ครั้ง</span></td><td class="text-muted" style="font-size: 1.1rem;">${tx.created_by || '-'}</td>
             <td><div class="d-flex flex-column">${slipBtn}${receiptBtn}${cargoBtn}</div></td>
-            <td class="text-center"><button class="btn btn-outline-danger btn-sm w-100 py-2 fs-6" onclick="reprintFromReport('${tx.id}')"><i class="bi bi-printer-fill"></i> พิมพ์ซ้ำ</button></td>
+            <td class="text-center"><button class="btn btn-outline-danger btn-sm w-full py-2 fs-6" onclick="reprintFromReport('${tx.id}')"><i class="bi bi-printer-fill"></i> พิมพ์ซ้ำ</button></td>
         `;
         tbody.appendChild(tr);
     });
@@ -472,6 +467,9 @@ function toggleReprintWidgets(show) {
     document.getElementById('pReprintStatus').style.display = displayStyle; document.getElementById('pReprintStatusCopy').style.display = displayStyle;
 }
 
+// ==========================================
+// 💡 กลุ่มฟังก์ชันตัวช่วยฟอร์ม (Form Utilities)
+// ==========================================
 function lockFormFields(shouldLock) {
     document.getElementById('customerName').readOnly = shouldLock; document.getElementById('customerPhone').readOnly = shouldLock;
     document.getElementById('bankName').readOnly = shouldLock; document.getElementById('bankAccount').readOnly = shouldLock; document.getElementById('bankAccountName').readOnly = shouldLock;
