@@ -50,13 +50,18 @@ function thaiBaht(num) {
 }
 
 /**
- * แกะวิเคราะห์และแปลงลิงก์แชร์ Google Drive ให้เป็น Direct URL เพื่อนำรูปภาพมาวาดบนแท็ก img ได้ทันที
- * @param {string} url ลิงก์จาก Google Drive
- * @returns {string} Direct Image URL
+ * แกะวิเคราะห์และแปลงลิงก์รูปภาพ รองรับ Supabase URL, LINE CDN และแปลง Google Drive ให้แสดงผลได้ทันที
+ * @param {string} url ลิงก์จากฐานข้อมูล
+ * @returns {string} URL รูปภาพที่พร้อมใช้งานในแท็ก img
  */
 function getDirectGoogleDriveUrl(url) {
     if (!url) return '';
     const cleanUrl = url.trim();
+    
+    // หากเป็นลิงก์ตรงจาก Supabase Storage หรือ LINE CDN ให้ส่งค่ากลับไปใช้งานตรงๆ ได้เลย
+    if (cleanUrl.includes('supabase.co') || cleanUrl.includes('line-apps.com') || cleanUrl.startsWith('data:image')) {
+        return cleanUrl;
+    }
     
     if (cleanUrl.includes('lh3.googleusercontent.com') || cleanUrl.includes('drive.google.com/uc')) {
         return cleanUrl;
@@ -70,14 +75,14 @@ function getDirectGoogleDriveUrl(url) {
     if (match && match[1]) {
         fileId = match[1];
     } else {
-        match = cleanUrl.match(regQueryFormat);
+        match = match[1] || cleanUrl.match(regQueryFormat);
         if (match && match[1]) {
             fileId = match[1];
         }
     }
 
     if (fileId) {
-        return "https://lh3.googleusercontent.com/d/" + fileId;
+        return "https://drive.google.com/uc?export=view&id=" + fileId;
     }
     return cleanUrl;
 }
