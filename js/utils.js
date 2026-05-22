@@ -50,13 +50,15 @@ function thaiBaht(num) {
 }
 
 /**
- * 🌟 ฟังก์ชันแกะลิงก์ Google Drive ไปแสดงผลในหน้าเว็บคอมพิวเตอร์ (เวอร์ชันซ่อมเครื่องหมาย $)
+ * แกะวิเคราะห์และแปลงลิงก์รูปภาพ รองรับ Supabase URL, LINE CDN และแปลง Google Drive ให้แสดงผลได้ทันที
+ * @param {string} url ลิงก์จากฐานข้อมูล
+ * @returns {string} URL รูปภาพที่พร้อมใช้งานในแท็ก img
  */
 function getDirectGoogleDriveUrl(url) {
     if (!url) return '';
     const cleanUrl = url.trim();
     
-    // ถ้าเป็นรูปภาพแบบ Base64 หรือโดเมนพรีวิวตรง lh3 อยู่แล้ว ให้ใช้งานได้ทันที
+    // หากเป็นรูปภาพแบบ Base64 หรือโดเมนพรีวิวตรง lh3 อยู่แล้ว ให้ใช้งานได้ทันที
     if (cleanUrl.startsWith('data:image') || cleanUrl.includes('lh3.googleusercontent.com')) {
         return cleanUrl;
     }
@@ -74,11 +76,11 @@ function getDirectGoogleDriveUrl(url) {
     } else if (regQueryFormat.test(cleanUrl)) {
         fileId = cleanUrl.match(regQueryFormat)[1];
     } else if (cleanUrl.length > 15 && !cleanUrl.includes('/') && !cleanUrl.includes('.')) {
-        // ถ้าระบบส่งรหัส ID ไฟล์มาดิบๆ จากหลังบ้าน
+        // ถ้าระบบส่งรหัส ID ไฟล์มาดิบๆ จาก GAS
         fileId = cleanUrl;
     }
 
-    // 🌟 แก้ไขเสร็จสิ้น: ใส่เครื่องหมาย $ หน้าปีกกาให้เรียบร้อยเพื่อดึงข้อมูลรูปภาพจาก Drive ขึ้นหน้าเว็บพรีวิว
+    // แปลงเข้าเซิร์ฟเวอร์ดึงรูปภาพพรีวิวของ Google โดยตรง เพื่อป้องกันปัญหารูปแตกและข้ามสิทธิ์ความปลอดภัย
     if (fileId) {
         return `https://lh3.googleusercontent.com/d/${fileId}`;
     }
