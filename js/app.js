@@ -1,5 +1,5 @@
 // ==========================================
-// 🚀 APPLICATION CONTROLLER (สมองกลควบคุมหลัก - เวอร์ชันซ่อมระบบตรวจจับลูกค้าเก่า)
+// 🚀 APPLICATION CONTROLLER (สมองกลควบคุมหลัก - เวอร์ชันเพิ่มรูปช่องที่ 4)
 // ==========================================
 
 let CENTRAL_CUSTOMER_DB = [];
@@ -153,7 +153,6 @@ function filterCustomerSearch() {
     let filteredList = CENTRAL_CUSTOMER_DB;
     if (keyword !== '' && !keyword.startsWith('➕')) {
         filteredList = CENTRAL_CUSTOMER_DB.filter(c => {
-            // 🛠️ แก้ไข: รองรับคีย์ตัวแปรทั้งแบบสไตล์เก่า (c.bank/c.account) และสไตล์ใหม่
             const bName = c.bank_name || c.bank || "";
             const bAcc = c.bank_account || c.account || "";
             const pPhone = c.phone || "";
@@ -175,7 +174,6 @@ function filterCustomerSearch() {
             
             let phoneBadge = cust.phone ? `<span class="badge bg-light text-dark border ms-2"><i class="bi bi-telephone-fill"></i> ${cust.phone}</span>` : '';
             
-            // 🛠️ แก้ไข: การดึงชื่อธนาคารและเลขบัญชีให้รองรับตัวแปรจาก Google Sheets เพื่อนำมาแสดงใน Dropdown
             let bName = cust.bank_name || cust.bank || '-';
             let bAcc = cust.bank_account || cust.account || '-';
             let bAccName = cust.bank_account_name || cust.accountName || '-';
@@ -207,7 +205,6 @@ function selectCustomerItem(indexValue) {
         lockFormFields(true);
         const c = CENTRAL_CUSTOMER_DB[parseInt(indexValue)];
         if (c) {
-            // 🛠️ แก้ไขสำคัญ: ดึงค่าและแมปค่าตัวแปรให้ถูกต้องทั้งสองระบบ เพื่อนำค่ามาหยอดลงช่องอินพุตในฟอร์ม
             searchInput.value = c.name;
             document.getElementById('customerName').value = c.name;
             document.getElementById('customerPhone').value = c.phone || '';
@@ -339,7 +336,8 @@ async function confirmPrintAndSave() {
                 slip_details: document.getElementById('slipDetails').value.trim(),
                 items_remark: document.getElementById('itemsRemark').value.trim(),
                 created_by: document.getElementById('createdBy').value.trim(),
-                print_count: 1
+                print_count: 1,
+                weight_doc_image_url: "" -- 🌟 กำหนดค่าเริ่มต้นเป็นว่างเปล่าสำหรับรูปช่องที่ 4 ตอนสร้างบิลจากหน้าร้าน
             });
         } else if (currentAction === 'REPRINT') {
             await SupabaseDB.updatePrintCount(currentTxId, reprintCountToSave);
@@ -369,14 +367,14 @@ async function loadTransactionsReportDashboard() {
     } catch (err) {
         console.error("Error loading report:", err);
         spinner.style.display = 'none';
-        document.getElementById('reportTableBody').innerHTML = `<tr><td colspan="9" class="text-center text-danger py-4 fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> รีพอร์ตล้มเหลว: ${err.message}</td></tr>`;
+        document.getElementById('reportTableBody').innerHTML = `<tr><td colspan="10" class="text-center text-danger py-4 fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> รีพอร์ตล้มเหลว: ${err.message}</td></tr>`;
         tableArea.style.display = 'block';
     }
 }
 
 function renderReportTable(items) {
     const tbody = document.getElementById('reportTableBody'); tbody.innerHTML = '';
-    if (items.length === 0) { tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">ไม่พบข้อมูลประวัติธุรกรรมใดๆ</td></tr>`; return; }
+    if (items.length === 0) { tbody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-muted">ไม่พบข้อมูลประวัติธุรกรรมใดๆ</td></tr>`; return; }
 
     items.forEach((tx) => {
         const regDate = new Date(tx.timestamp);
@@ -384,7 +382,10 @@ function renderReportTable(items) {
         
         let slipBtn = (tx.slip_image_url && tx.slip_image_url.trim() !== '') ? `<button class="btn btn-sm btn-success py-1 px-2 fs-6 w-full mb-1 text-white" onclick="showAttachmentImage('${tx.slip_image_url}', 'รูปสลิปใบโอนชำระเงิน : ${tx.receipt_number}')"><i class="bi bi-file-image"></i> เปิดดูสลิป</button>` : `<span class="badge bg-warning text-dark py-1 px-2 mb-1 fw-bold fs-6 w-full text-center d-block"><i class="bi bi-clock"></i> รอรูปสลิป</span>`;
         let receiptBtn = (tx.receipt_image_url && tx.receipt_image_url.trim() !== '') ? `<button class="btn btn-sm btn-info py-1 px-2 fs-6 w-full mb-1 text-white" onclick="showAttachmentImage('${tx.receipt_image_url}', 'รูปภาพใบเสร็จรับซื้อ : ${tx.receipt_number}')"><i class="bi bi-file-image"></i> เปิดดูใบเสร็จ</button>` : `<span class="badge bg-warning text-dark py-1 px-2 mb-1 fw-bold fs-6 w-full text-center d-block"><i class="bi bi-clock"></i> รอรูปรับซื้อ</span>`;
-        let cargoBtn = (tx.cargo_image_url && tx.cargo_image_url.trim() !== '') ? `<button class="btn btn-sm btn-primary py-1 px-2 fs-6 w-full text-white" onclick="showAttachmentImage('${tx.cargo_image_url}', 'รูปภาพสินค้า/หน้างานเพิ่มเติม : ${tx.receipt_number}')"><i class="bi bi-file-image"></i> เปิดดูรูปสินค้า</button>` : `<span class="badge bg-warning text-dark py-1 px-2 fw-bold fs-6 w-full text-center d-block"><i class="bi bi-clock"></i> รอรูปสินค้า</span>`;
+        let cargoBtn = (tx.cargo_image_url && tx.cargo_image_url.trim() !== '') ? `<button class="btn btn-sm btn-primary py-1 px-2 fs-6 w-full mb-1 text-white" onclick="showAttachmentImage('${tx.cargo_image_url}', 'รูปภาพสินค้า/หน้างานเพิ่มเติม : ${tx.receipt_number}')"><i class="bi bi-file-image"></i> เปิดดูรูปสินค้า</button>` : `<span class="badge bg-warning text-dark py-1 px-2 mb-1 fw-bold fs-6 w-full text-center d-block"><i class="bi bi-clock"></i> รอรูปสินค้า</span>`;
+        
+        // 🌟 ตัวที่เพิ่มใหม่: ปุ่มเปิดดูรูปชั่งน้ำหนัก / เอกสารรับเข้า (รูปภาพช่องที่ 4)
+        let weightDocBtn = (tx.weight_doc_image_url && tx.weight_doc_image_url.trim() !== '') ? `<button class="btn btn-sm btn-dark py-1 px-2 fs-6 w-full text-white" onclick="showAttachmentImage('${tx.weight_doc_image_url}', 'รูปเอกสารตรวจรับ/ชั่งน้ำหนัก : ${tx.receipt_number}')"><i class="bi bi-file-image"></i> เปิดดูรูปชั่งน้ำหนัก</button>` : `<span class="badge bg-warning text-dark py-1 px-2 fw-bold fs-6 w-full text-center d-block"><i class="bi bi-clock"></i> รอรูปชั่งน้ำหนัก</span>`;
         
         let nameBadge = (tx.is_new_customer && tx.is_new_customer.indexOf("ใช่") !== -1) ? `<span class="badge bg-danger text-white py-1 px-2 me-1 fs-6">ใหม่</span> ${tx.customer_name}` : tx.customer_name;
         const displayPhone = tx.customer_phone ? `<br><small class="text-muted"><i class="bi bi-telephone-fill"></i> ${tx.customer_phone}</small>` : '<br><small class="text-muted">-</small>';
@@ -395,7 +396,7 @@ function renderReportTable(items) {
             <td class="text-end text-success fw-bold fs-5">${parseFloat(tx.amount || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
             <td style="font-size: 1.1rem;"><span class="badge bg-secondary mb-1">${tx.bank_name || '-'}</span><br><span class="text-break">${tx.bank_account || '-'}</span><br><span class="text-muted text-break">${tx.bank_account_name || '-'}</span></td>
             <td class="text-center"><span class="badge bg-dark fs-6">${tx.print_count || 1} ครั้ง</span></td><td class="text-muted" style="font-size: 1.1rem;">${tx.created_by || '-'}</td>
-            <td><div class="d-flex flex-column">${slipBtn}${receiptBtn}${cargoBtn}</div></td>
+            <td><div class="d-flex flex-column">${slipBtn}${receiptBtn}${cargoBtn}${weightDocBtn}</div></td>
             <td class="text-center"><button class="btn btn-outline-danger btn-sm w-full py-2 fs-6" onclick="reprintFromReport('${tx.id}')"><i class="bi bi-printer-fill"></i> พิมพ์ซ้ำ</button></td>
         `;
         tbody.appendChild(tr);
