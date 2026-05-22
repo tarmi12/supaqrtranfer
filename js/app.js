@@ -1,5 +1,5 @@
 // ==========================================
-// 🚀 APPLICATION CONTROLLER (สมองกลควบคุมหลัก - แก้ไข Bug แมตช์ตัวแปรและโครงสลิปคู่)
+// 🚀 APPLICATION CONTROLLER (สมองกลควบคุมหลัก - แก้ไข Bug ล็อกอินนิ่งค้าง)
 // ==========================================
 
 let CENTRAL_CUSTOMER_DB = [];
@@ -13,7 +13,8 @@ let currentTxId = null;
 let reprintCountToSave = 1;
 
 document.addEventListener("DOMContentLoaded", () => {
-    checkUserSession(); // ตรวจสอบเซสชันความปลอดภัย
+    // 🌟 ย้ายระบบตรวจสอบความปลอดภัยมาเริ่มรันตรงนี้หลังจากหน้าจอโหลดเสร็จชัวร์ๆ ป้องกันค้าง
+    checkUserSession(); 
 
     // ผูกเหตุการณ์หน้าฟอร์ม
     document.getElementById('customerSearchInput').addEventListener('focus', showCustomerDropdown);
@@ -30,32 +31,49 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('reportStartDate').addEventListener('change', filterReportTable);
     document.getElementById('reportEndDate').addEventListener('change', filterReportTable);
     document.getElementById('btnClearReportFilter').addEventListener('click', clearReportFilters);
+    
+    // ผูกเหตุการณ์ฟอร์มล็อกอิน
+    document.getElementById('loginForm').addEventListener('submit', handleLoginSubmit);
 });
 
+// ==========================================
+// 🔒 ระบบจัดการความปลอดภัยและการเข้าสู่ระบบ (Authentication)
+// ==========================================
 async function checkUserSession() {
     try {
         const { data: { session }, error } = await supabaseClient.auth.getSession();
         if (error) throw error;
-        if (session) onAuthSuccess(session.user);
-        else onAuthRequired();
+        if (session) {
+            onAuthSuccess(session.user);
+        } else {
+            onAuthRequired();
+        }
     } catch (err) {
         console.error("Session check error:", err);
         onAuthRequired();
     }
 }
 
+// รับฟังสถานะความปลอดภัยเมื่อมีการกดล็อกอินสำเร็จจากผู้ใช้งาน
 supabaseClient.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_IN' && session) onAuthSuccess(session.user);
-    else if (event === 'SIGNED_OUT') onAuthRequired();
+    if (event === 'SIGNED_IN' && session) {
+        onAuthSuccess(session.user);
+    } else if (event === 'SIGNED_OUT') {
+        onAuthRequired();
+    }
 });
 
 function onAuthSuccess(user) {
     document.getElementById('loginSection').style.display = 'none';
     document.getElementById('appMainSection').style.display = 'block';
-    document.getElementById('logoutBtn').style.display = 'block';
-    document.getElementById('logoutBtn').addEventListener('click', handleLogout);
     
-    const userEmailPrefix = user.email.split('@')[0];
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.style.display = 'block';
+        logoutBtn.onclick = handleLogout; // เปลี่ยนมาผูก Event ปลอดภัยกว่า
+    }
+    
+    const userEmailPrefix = user.email ? user.email.split('@')[0] : "พนักงานหน้าร้าน";
     document.getElementById('createdBy').value = userEmailPrefix;
 
     initDateTime();
@@ -64,9 +82,10 @@ function onAuthSuccess(user) {
 
 function onAuthRequired() {
     document.getElementById('appMainSection').style.display = 'none';
-    document.getElementById('logoutBtn').style.display = 'none';
+    if (document.getElementById('logoutBtn')) {
+        document.getElementById('logoutBtn').style.display = 'none';
+    }
     document.getElementById('loginSection').style.display = 'block';
-    document.getElementById('loginForm').addEventListener('submit', handleLoginSubmit);
 }
 
 async function handleLoginSubmit(e) {
@@ -78,14 +97,19 @@ async function handleLoginSubmit(e) {
 
     alertContainer.innerHTML = '';
     submitBtn.disabled = true;
-    submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span> ตรวจสอบสิทธิ์...`;
+    submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span> ตรวจสอบสิทธิ์หลังบ้าน...`;
 
     try {
-        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        
+        // หากเข้าระบบผ่าน ให้รีเฟรชสิทธิ์เรียกเซสชันทำงานทันที
+        if (data.user) {
+            onAuthSuccess(data.user);
+        }
     } catch (err) {
         console.error("Login failed:", err.message);
-        alertContainer.innerHTML = `<div class="alert alert-danger border-2 p-3 fw-bold fs-6"><i class="bi bi-shield-slash-fill me-1"></i> รหัสผ่านไม่ถูกต้อง!</div>`;
+        alertContainer.innerHTML = `<div class="alert alert-danger border-2 p-3 fw-bold fs-6"><i class="bi bi-shield-slash-fill me-1"></i> รหัสผ่านผิดพลาด หรือ บัญชีผู้ใช้นี้ไม่มีในระบบ Supabase!</div>`;
         submitBtn.disabled = false;
         submitBtn.innerHTML = `<i class="bi bi-box-arrow-in-right me-1"></i> เข้าสู่ระบบทันที`;
     }
@@ -95,12 +119,16 @@ async function handleLogout() {
     try {
         const { error } = await supabaseClient.auth.signOut();
         if (error) throw error;
+        onAuthRequired();
     } catch (err) {
         console.error("Logout error:", err.message);
         onAuthRequired();
     }
 }
 
+// ==========================================
+// 🔮 ระบบค้นหา Autocomplete คลังรายชื่อลูกค้า
+// ==========================================
 async function loadCustomersData() {
     try {
         CENTRAL_CUSTOMER_DB = await SupabaseDB.fetchCustomers();
@@ -235,7 +263,6 @@ function handleFormSubmit(e) {
     const cName = document.getElementById('customerName').value.trim();
     const bAcc = document.getElementById('bankAccount').value.trim();
     
-    // 🌟 ดับเบิ้ลเช็กความถูกต้อง ป้องกันค้างสถานะ (เพิ่มใหม่) ทั้งที่มีในคลังตัวจริง
     const checkCust = CENTRAL_CUSTOMER_DB.find(c => c.name.trim() === cName || (c.bank_account && c.bank_account.trim() === bAcc));
     if (checkCust) {
         isNewCustomer = false;
