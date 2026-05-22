@@ -336,8 +336,8 @@ async function confirmPrintAndSave() {
                 slip_details: document.getElementById('slipDetails').value.trim(),
                 items_remark: document.getElementById('itemsRemark').value.trim(),
                 created_by: document.getElementById('createdBy').value.trim(),
-                print_count: 1,
-                weight_doc_image_url: "" -- 🌟 กำหนดค่าเริ่มต้นเป็นว่างเปล่าสำหรับรูปช่องที่ 4 ตอนสร้างบิลจากหน้าร้าน
+print_count: 1,
+weight_doc_image_url: "" // 🌟 กำหนดค่าเริ่มต้นเป็นว่างเปล่าสำหรับรูปช่องที่ 4 ตอนสร้างบิลจากหน้าร้าน
             });
         } else if (currentAction === 'REPRINT') {
             await SupabaseDB.updatePrintCount(currentTxId, reprintCountToSave);
