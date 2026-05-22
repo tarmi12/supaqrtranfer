@@ -1,5 +1,5 @@
 // ==========================================
-// 🚀 APPLICATION CONTROLLER (สมองกลควบคุมหลัก - เวอร์ชันเพิ่มรูปช่องที่ 4)
+// 🚀 APPLICATION CONTROLLER (สมองกลควบคุมหลัก - เวอร์ชันรวมปุ่มรูปและรองรับส่งพร้อมกัน)
 // ==========================================
 
 let CENTRAL_CUSTOMER_DB = [];
@@ -336,8 +336,8 @@ async function confirmPrintAndSave() {
                 slip_details: document.getElementById('slipDetails').value.trim(),
                 items_remark: document.getElementById('itemsRemark').value.trim(),
                 created_by: document.getElementById('createdBy').value.trim(),
-print_count: 1,
-weight_doc_image_url: "" // 🌟 กำหนดค่าเริ่มต้นเป็นว่างเปล่าสำหรับรูปช่องที่ 4 ตอนสร้างบิลจากหน้าร้าน
+                print_count: 1,
+                image_urls: [] // กำหนดค่าเริ่มต้นเป็นอาเรย์ว่างสำหรับเก็บรูปภาพทั้งหมดเป็นก้อนเดียวใน Supabase
             });
         } else if (currentAction === 'REPRINT') {
             await SupabaseDB.updatePrintCount(currentTxId, reprintCountToSave);
@@ -367,25 +367,38 @@ async function loadTransactionsReportDashboard() {
     } catch (err) {
         console.error("Error loading report:", err);
         spinner.style.display = 'none';
-        document.getElementById('reportTableBody').innerHTML = `<tr><td colspan="10" class="text-center text-danger py-4 fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> รีพอร์ตล้มเหลว: ${err.message}</td></tr>`;
+        document.getElementById('reportTableBody').innerHTML = `<tr><td colspan="9" class="text-center text-danger py-4 fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> รีพอร์ตล้มเหลว: ${err.message}</td></tr>`;
         tableArea.style.display = 'block';
     }
 }
 
 function renderReportTable(items) {
     const tbody = document.getElementById('reportTableBody'); tbody.innerHTML = '';
-    if (items.length === 0) { tbody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-muted">ไม่พบข้อมูลประวัติธุรกรรมใดๆ</td></tr>`; return; }
+    if (items.length === 0) { tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">ไม่พบข้อมูลประวัติธุรกรรมใดๆ</td></tr>`; return; }
 
     items.forEach((tx) => {
         const regDate = new Date(tx.timestamp);
         const regDateTimeStr = regDate.toLocaleDateString('th-TH', { year: '2-digit', month: 'short', day: 'numeric' }) + ' ' + regDate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
         
-        let slipBtn = (tx.slip_image_url && tx.slip_image_url.trim() !== '') ? `<button class="btn btn-sm btn-success py-1 px-2 fs-6 w-full mb-1 text-white" onclick="showAttachmentImage('${tx.slip_image_url}', 'รูปสลิปใบโอนชำระเงิน : ${tx.receipt_number}')"><i class="bi bi-file-image"></i> เปิดดูสลิป</button>` : `<span class="badge bg-warning text-dark py-1 px-2 mb-1 fw-bold fs-6 w-full text-center d-block"><i class="bi bi-clock"></i> รอรูปสลิป</span>`;
-        let receiptBtn = (tx.receipt_image_url && tx.receipt_image_url.trim() !== '') ? `<button class="btn btn-sm btn-info py-1 px-2 fs-6 w-full mb-1 text-white" onclick="showAttachmentImage('${tx.receipt_image_url}', 'รูปภาพใบเสร็จรับซื้อ : ${tx.receipt_number}')"><i class="bi bi-file-image"></i> เปิดดูใบเสร็จ</button>` : `<span class="badge bg-warning text-dark py-1 px-2 mb-1 fw-bold fs-6 w-full text-center d-block"><i class="bi bi-clock"></i> รอรูปรับซื้อ</span>`;
-        let cargoBtn = (tx.cargo_image_url && tx.cargo_image_url.trim() !== '') ? `<button class="btn btn-sm btn-primary py-1 px-2 fs-6 w-full mb-1 text-white" onclick="showAttachmentImage('${tx.cargo_image_url}', 'รูปภาพสินค้า/หน้างานเพิ่มเติม : ${tx.receipt_number}')"><i class="bi bi-file-image"></i> เปิดดูรูปสินค้า</button>` : `<span class="badge bg-warning text-dark py-1 px-2 mb-1 fw-bold fs-6 w-full text-center d-block"><i class="bi bi-clock"></i> รอรูปสินค้า</span>`;
-        
-        // 🌟 ตัวที่เพิ่มใหม่: ปุ่มเปิดดูรูปชั่งน้ำหนัก / เอกสารรับเข้า (รูปภาพช่องที่ 4)
-        let weightDocBtn = (tx.weight_doc_image_url && tx.weight_doc_image_url.trim() !== '') ? `<button class="btn btn-sm btn-dark py-1 px-2 fs-6 w-full text-white" onclick="showAttachmentImage('${tx.weight_doc_image_url}', 'รูปเอกสารตรวจรับ/ชั่งน้ำหนัก : ${tx.receipt_number}')"><i class="bi bi-file-image"></i> เปิดดูรูปชั่งน้ำหนัก</button>` : `<span class="badge bg-warning text-dark py-1 px-2 fw-bold fs-6 w-full text-center d-block"><i class="bi bi-clock"></i> รอรูปชั่งน้ำหนัก</span>`;
+        // 🌟 รวมปุ่มดึงรูปภาพ: ตรวจสอบโครงสร้างข้อมูลใหม่และตัวเลือกสำรองแบบดั้งเดิม
+        let imgsData = [];
+        if (tx.image_urls && Array.isArray(tx.image_urls)) {
+            imgsData = tx.image_urls.filter(url => url && url.trim() !== '');
+        } else {
+            // โหมดสำรองข้อมูลระบบเดิมเพื่อไม่ให้พังเวลาเปิดบิลเก่า
+            if (tx.slip_image_url && tx.slip_image_url.trim() !== '') imgsData.push(tx.slip_image_url);
+            if (tx.receipt_image_url && tx.receipt_image_url.trim() !== '') imgsData.push(tx.receipt_image_url);
+            if (tx.cargo_image_url && tx.cargo_image_url.trim() !== '') imgsData.push(tx.cargo_image_url);
+            if (tx.weight_doc_image_url && tx.weight_doc_image_url.trim() !== '') imgsData.push(tx.weight_doc_image_url);
+        }
+
+        let photoBtn = "";
+        if (imgsData.length > 0) {
+            const imgsJson = encodeURIComponent(JSON.stringify(imgsData));
+            photoBtn = `<button class="btn btn-sm btn-success py-2 px-3 fs-5 w-full text-white" onclick="showAllBillImages('${imgsJson}', '${tx.receipt_number}')"><i class="bi bi-images"></i> เปิดดูหลักฐานทั้งหมด (${imgsData.length} รูป)</button>`;
+        } else {
+            photoBtn = `<span class="badge bg-warning text-dark py-2 px-3 fw-bold fs-6 w-full text-center d-block"><i class="bi bi-clock"></i> รอยิงรูปภาพเข้าไลน์</span>`;
+        }
         
         let nameBadge = (tx.is_new_customer && tx.is_new_customer.indexOf("ใช่") !== -1) ? `<span class="badge bg-danger text-white py-1 px-2 me-1 fs-6">ใหม่</span> ${tx.customer_name}` : tx.customer_name;
         const displayPhone = tx.customer_phone ? `<br><small class="text-muted"><i class="bi bi-telephone-fill"></i> ${tx.customer_phone}</small>` : '<br><small class="text-muted">-</small>';
@@ -396,7 +409,7 @@ function renderReportTable(items) {
             <td class="text-end text-success fw-bold fs-5">${parseFloat(tx.amount || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
             <td style="font-size: 1.1rem;"><span class="badge bg-secondary mb-1">${tx.bank_name || '-'}</span><br><span class="text-break">${tx.bank_account || '-'}</span><br><span class="text-muted text-break">${tx.bank_account_name || '-'}</span></td>
             <td class="text-center"><span class="badge bg-dark fs-6">${tx.print_count || 1} ครั้ง</span></td><td class="text-muted" style="font-size: 1.1rem;">${tx.created_by || '-'}</td>
-            <td><div class="d-flex flex-column">${slipBtn}${receiptBtn}${cargoBtn}${weightDocBtn}</div></td>
+            <td><div class="d-flex flex-column">${photoBtn}</div></td>
             <td class="text-center"><button class="btn btn-outline-danger btn-sm w-full py-2 fs-6" onclick="reprintFromReport('${tx.id}')"><i class="bi bi-printer-fill"></i> พิมพ์ซ้ำ</button></td>
         `;
         tbody.appendChild(tr);
@@ -504,4 +517,29 @@ function clearForm() {
     document.getElementById('customerSearchInput').value = ''; lockFormFields(true); isNewCustomer = false;
     document.getElementById('customerBadge').className = "badge bg-secondary";
     document.getElementById('customerBadge').textContent = "รอลูกค้าใหม่";
+}
+
+// 🌟 ฟังก์ชันพิเศษสำหรับดึงรูปภาพทั้งหมดมาแสดงผลในแบบต่อยาวลงมาในป๊อปอัปเดียวกัน
+function showAllBillImages(encodedImgs, receiptNo) {
+    const imgs = JSON.parse(decodeURIComponent(encodedImgs));
+    document.getElementById('imageModalTitle').innerText = `หลักฐานเอกสารแนบทั้งหมดของบิล : ${receiptNo}`;
+    
+    const container = document.getElementById('modalImageContainer');
+    container.innerHTML = ""; // ล้างข้อมูลรูปเก่าที่ค้างอยู่
+    
+    imgs.forEach((url, index) => {
+        const directUrl = getDirectGoogleDriveUrl(url);
+        const imgWrapper = document.createElement('div');
+        imgWrapper.className = "mb-4 p-2 bg-white rounded shadow-sm border border-light";
+        imgWrapper.innerHTML = `
+            <div class="badge bg-dark mb-2 fs-6">รูปหลักฐานใบที่ ${index + 1}</div>
+            <img src="${directUrl}" class="img-fluid rounded border d-block mx-auto" style="max-height: 75vh; width: auto;" alt="หลักฐานชิ้นที่ ${index + 1}">
+        `;
+        container.appendChild(imgWrapper);
+    });
+    
+    document.getElementById('imageModalDownloadLink').style.display = "none"; // ซ่อนปุ่มดาวน์โหลดลิงก์เดี่ยวเพื่อไม่ให้ทับซ้อน
+    
+    if (!imageModalObj) imageModalObj = new bootstrap.Modal(document.getElementById('imageModal'));
+    imageModalObj.show();
 }

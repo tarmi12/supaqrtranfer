@@ -232,13 +232,14 @@
                                         <thead>
                                             <tr>
                                                 <th style="width: 13%;">วันเวลาทำรายการ</th>
-                                                <th style="width: 12%;">เลขที่ใบเสร็จ</th>
+                                                <th style="width: 11%;">เลขที่ใบเสร็จ</th>
                                                 <th style="width: 15%;">ชื่อลูกค้า (เบอร์โทร)</th>
                                                 <th style="width: 10%;" class="text-end">ยอดเงินโอน</th>
                                                 <th style="width: 13%;">บัญชีปลายทาง</th>
-                                                <th style="width: 7%;">พิมพ์ซ้ำ</th>
-                                                <th style="width: 8%;">ผู้บันทึก</th>
-                                                <th style="width: 14%;">หลักฐานจาก LINE (4 รูป)</th> <th style="width: 8%;" class="text-center">จัดการ</th>
+                                                <th style="width: 7%;">จำนวนพิมพ์</th>
+                                                <th style="width: 7%;">ผู้บันทึก</th>
+                                                <th style="width: 16%;">หลักฐานรูปภาพจาก LINE</th> <!-- 🌟 ปรับปรุงเป็น 1 คอลัมน์สำหรับปุ่มเดียวเปิดดูรูปสไลด์ยาว -->
+                                                <th style="width: 8%;" class="text-center">จัดการ</th>
                                             </tr>
                                         </thead>
                                         <tbody id="reportTableBody"></tbody>
@@ -341,6 +342,7 @@
         </div>
     </div>
 
+    <!-- 🌟 Modal สำหรับแสดงผลสไลด์รูปภาพทั้งหมดแบบต่อยาวลงมาเพื่อความรวดเร็วในการตรวจสอบ -->
     <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
@@ -348,12 +350,13 @@
                     <h5 class="modal-title fw-bold" id="imageModalTitle">รูปสลิป / รูปใบเสร็จจาก LINE OA</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body text-center bg-secondary p-2" id="modalImageContainer">
+                <!-- คอนเทนเนอร์ที่จะแสดงรูปภาพทั้งหมดที่พนักงานส่งรวบเข้ามาเป็นแนวยาว -->
+                <div class="modal-body text-center bg-secondary p-3" id="modalImageContainer" style="max-height: 70vh; overflow-y: auto;">
                     <img id="imageModalTarget" src="" class="img-fluid rounded shadow border border-light border-2" style="max-height: 70vh;" alt="ภาพหลักฐานแนบ">
                 </div>
                 <div class="modal-footer bg-light py-2">
-                    <a id="imageModalDownloadLink" href="#" target="_blank" class="btn btn-outline-dark btn-sm px-3 fw-bold fs-6"><i class="bi bi-box-arrow-up-right me-1"></i> เปิดในแท็บใหม่ / ดาวน์โหลดรูปภาพจริง</a>
-                    <button type="button" class="btn-secondary btn-sm px-3 fs-6 fw-bold" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+                    <a id="imageModalDownloadLink" href="#" target="_blank" class="btn btn-outline-dark btn-sm px-3 fw-bold fs-6" style="display: none;"><i class="bi bi-box-arrow-up-right me-1"></i> เปิดในแท็บใหม่ / ดาวน์โหลดรูปภาพจริง</a>
+                    <button type="button" class="btn btn-secondary btn-sm px-3 fs-6 fw-bold" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
                 </div>
             </div>
         </div>
