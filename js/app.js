@@ -325,6 +325,7 @@ async function confirmPrintAndSave() {
     if (previewModalObj) previewModalObj.hide();
     showActionAlert('⏳ กำลังบันทึกข้อมูลธุรกรรมลงระบบจัดเก็บข้อมูล...', 'info');
 
+    // 🌟 ดึงชื่อลูกค้าจากช่อง INPUT จริงที่พนักงานคีย์หรือเลือกมา
     const customerName = document.getElementById('customerName').value.trim();
     const customerPhoneVal = document.getElementById('customerPhone').value.trim();
     const amount = parseFloat(document.getElementById('amount').value);
@@ -333,24 +334,34 @@ async function confirmPrintAndSave() {
 
     try {
         if (currentAction === 'CREATE') {
-            const checkExist = CENTRAL_CUSTOMER_DB.some(c => c.name.toLowerCase() === customerName.toLowerCase());
-            if (checkExist) {
+            
+            // 🌟 [จุดแก้ไขสำคัญ] ดับเบิลเช็กกับคลังลูกค้าในหน่วยความจำ (CENTRAL_CUSTOMER_DB) อีกครั้งหนึ่ง
+            // โดยการตัดคำว่า " (เพิ่มใหม่)" ออกก่อนนำไปค้นหา เพื่อป้องกันความผิดพลาด
+            const cleanCheckName = customerName.replace(' (เพิ่มใหม่)', '').trim();
+            const isExistInDB = CENTRAL_CUSTOMER_DB.some(c => c.name.toLowerCase().trim() === cleanCheckName.toLowerCase());
+            
+            if (isExistInDB) {
+                // ถ้าตรวจพบว่าชื่อนี้มีอยู่ในฐานข้อมูลลูกค้าเก่าอยู่แล้ว ให้บังคับเป็น false ทันที
                 isNewCustomer = false;
             }
 
+            // จัดเตรียมข้อมูลส่งไปที่คลังลูกค้า (ถ้าเป็นลูกค้าใหม่จริง ๆ)
             if (isNewCustomer) {
                 await SupabaseDB.upsertCustomer({ 
-                    name: customerName, 
+                    name: cleanCheckName, 
                     phone: customerPhoneVal, 
                     bank_name: document.getElementById('bankName').value, 
                     bank_account: document.getElementById('bankAccount').value.trim(), 
                     bank_account_name: document.getElementById('bankAccountName').value.trim() 
                 });
             }
+
+            // บันทึกรายการธุรกรรมลง Supabase
             await SupabaseDB.insertTransaction({
                 receipt_number: document.getElementById('vReceiptNo').innerText,
+                // 🌟 บันทึกสถานะให้ตรงกับความจริง 
                 is_new_customer: isNewCustomer ? "ใช่ (พนักงานคีย์เองที่หน้าจอ)" : "ไม่ใช่ (เลือกจากฐานข้อมูล)",
-                customer_name: isNewCustomer ? `${customerName} (เพิ่มใหม่)` : customerName,
+                customer_name: isNewCustomer ? `${cleanCheckName} (เพิ่มใหม่)` : cleanCheckName,
                 customer_phone: customerPhoneVal,
                 bank_name: document.getElementById('bankName').value,
                 bank_account: document.getElementById('bankAccount').value.trim(),
