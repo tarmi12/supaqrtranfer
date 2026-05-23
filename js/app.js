@@ -462,7 +462,7 @@ function renderReportTable(items) {
         } else {
             actionColumnContent = `
                 <div class="d-flex flex-column gap-1">
-                    <button class="btn btn-outline-danger btn-sm w-full py-1 fs-6" onclick="reprintFromReport('${tx.id}')"><i class="bi bi-printer-fill"></i> พิมพ์ซ้ำ</button>
+                    <button class="btn btn-outline-primary btn-sm w-full py-1 fs-6" onclick="reprintFromReport('${tx.id}')"><i class="bi bi-printer-fill"></i> พิมพ์ซ้ำ</button>
                     <button class="btn btn-danger btn-sm w-full py-1 fs-6" onclick="openCancelModal('${tx.id}', '${tx.receipt_number}')"><i class="bi bi-x-circle-fill"></i> ยกเลิกรายการ</button>
                 </div>
             `;
