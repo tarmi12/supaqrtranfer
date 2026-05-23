@@ -453,10 +453,9 @@ function renderReportTable(items) {
             customerNameToShow = customerNameToShow.replace('(เพิ่มใหม่)', '').trim();
         }
         
-        // ⚙️ โค้ดส่วนอื่นคงไว้เหมือนเดิมเพื่อจัดการเรื่องขีดฆ่ายกเลิกบิล และการแสดงผลเบอร์โทรศัพท์
+        // ⚙️ จัดการเรื่องขีดฆ่ายกเลิกบิล ป้าย Badge แดง และการแสดงผลเบอร์โทรศัพท์ (แก้ไขจุดซ้ำซ้อนแล้ว)
         let strikeClass = isCancelled ? "text-strike" : "";
         let nameBadge = isActuallyNew ? `<span class="badge bg-danger text-white py-1 px-2 me-1 fs-6">ใหม่</span> ${customerNameToShow}` : customerNameToShow;
-        const displayPhone = tx.customer_phone ? `<br><small class="text-muted"><i class="bi bi-telephone-fill"></i> ${tx.customer_phone}</small>` : '<br><small class="text-muted">-</small>';
         const displayPhone = tx.customer_phone ? `<br><small class="text-muted"><i class="bi bi-telephone-fill"></i> ${tx.customer_phone}</small>` : '<br><small class="text-muted">-</small>';
 
         const bankNameText = tx.bank_name || '-';
