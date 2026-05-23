@@ -3,12 +3,50 @@
 // ==========================================
 
 /**
- * สร้างรหัสใบเสร็จรับเงินอัตโนมัติอ้างอิงเวลาจริงเสี้ยววินาที ณ ปัจจุบัน
- * @returns {string} RE-YYYYMMDD-HHMMSS
+ * สร้างรหัสใบเสร็จรับเงินอัตโนมัติอ้างอิง วันที่ปัจจุบัน (ปี 2 หลัก) + เลขรันนิ่งนับหนึ่งใหม่ทุกวัน
+ * @param {number} runningNumber ลำดับบิลของวันนี้ (เช่น 0, 1, 2)
+ * @returns {string} RE-YYMMDD-XXX (เช่น RE-260523-001)
  */
-function generateReceiptNo() {
+function generateReceiptNo(runningNumber) {
     const now = new Date();
-    return `RE-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+    
+    // ดึงปี ค.ศ. แปลงเป็นอักษร แล้วตัดเอาเฉพาะ 2 หลักท้าย (เช่น "2026" จะเหลือแค่ "26")
+    const yearShort = String(now.getFullYear()).slice(-2);
+    
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    
+    // บิลถัดไปคือ ลำดับปัจจุบันจากหลังบ้าน + 1
+    const nextNumber = runningNumber + 1;
+    
+    // เติมเลขศูนย์ข้างหน้าให้เป็น 3 หลักเสมอ เช่น บิลที่ 1 -> "001"
+    const runningStr = String(nextNumber).padStart(3, '0'); 
+    
+    return `RE-${yearShort}${month}${day}-${runningStr}`;
+}
+
+/**
+ * ตรวจสอบชื่อธนาคารแล้วส่งกลับคลาสดีไซน์ป้ายสีเฉพาะตามแบรนดิ้งจริง
+ * @param {string} bankName ชื่อธนาคารที่พิมพ์ในข้อมูล
+ * @returns {string} ชื่อ Class CSS
+ */
+function getBankBadgeClass(bankName) {
+    if (!bankName) return 'bg-secondary text-white';
+    
+    const name = bankName.toLowerCase().trim();
+    
+    if (name.includes('กสิกร') || name.includes('kbank') || name.includes('kasikorn')) return 'badge-kbank';
+    if (name.includes('ไทยพาณิชย์') || name.includes('scb') || name.includes('siam commercial')) return 'badge-scb';
+    if (name.includes('กรุงเทพ') || name.includes('bbl') || name.includes('bangkok')) return 'badge-bbl';
+    if (name.includes('กรุงศรี') || name.includes('bay') || name.includes('krungsri')) return 'badge-bay';
+    if (name.includes('กรุงไทย') || name.includes('ktb') || name.includes('krungthai')) return 'badge-ktb';
+    if (name.includes('ทหารไทย') || name.includes('ธนชาต') || name.includes('ttb')) return 'badge-ttb';
+    if (name.includes('ออมสิน') || name.includes('gsb')) return 'badge-gsb';
+    if (name.includes('ธกส') || name.includes('ธ.ก.ส.') || name.includes('baac')) return 'badge-baac';
+    if (name.includes('ธอส') || name.includes('ธ.อ.ส.') || name.includes('ghb')) return 'badge-ghb';
+    if (name.includes('uob') || name.includes('ยูโอบี')) return 'badge-uob';
+    
+    return 'bg-secondary text-white'; // ส่งคลาสสีเทากลางมาตรฐานหากไม่ตรงคีย์เวิร์ด
 }
 
 /**
@@ -76,11 +114,10 @@ function getDirectGoogleDriveUrl(url) {
     } else if (regQueryFormat.test(cleanUrl)) {
         fileId = cleanUrl.match(regQueryFormat)[1];
     } else if (cleanUrl.length > 15 && !cleanUrl.includes('/') && !cleanUrl.includes('.')) {
-        // ถ้าระบบส่งรหัส ID ไฟล์มาดิบๆ จาก GAS
         fileId = cleanUrl;
     }
 
-    // แปลงเข้าเซิร์ฟเวอร์ดึงรูปภาพพรีวิวของ Google โดยตรง เพื่อป้องกันปัญหารูปแตกและข้ามสิทธิ์ความปลอดภัย
+    // แก้ไข Template Literal เพื่อให้ดึงลิ้งก์แสดงพรีวิวตรงสมบูรณ์แบบ
     if (fileId) {
         return `https://lh3.googleusercontent.com/d/${fileId}`;
     }

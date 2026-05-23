@@ -30,6 +30,27 @@ const SupabaseDB = {
     },
 
     /**
+     * ดึงจำนวนธุรกรรมเฉพาะวันนี้เพื่อมารันเลข Running บิล
+     */
+    async countTodayTransactions() {
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).toISOString();
+
+        let { count, error } = await supabaseClient
+            .from('transactions')
+            .select('*', { count: 'exact', head: true })
+            .gte('timestamp', startOfDay)
+            .lte('timestamp', endOfDay);
+
+        if (error) {
+            console.error("นับธุรกรรมสำหรับ Running บิลล้มเหลว:", error.message);
+            return 0;
+        }
+        return count || 0;
+    },
+
+    /**
      * เพิ่มรายชื่อลูกค้าใหม่กรณีคีย์สดหน้าร้าน (Upsert ป้องกันชื่อซ้ำ)
      */
     async upsertCustomer(customerData) {
@@ -58,6 +79,24 @@ const SupabaseDB = {
         const { error } = await supabaseClient
             .from('transactions')
             .update({ print_count: newCount })
+            .eq('id', txId);
+
+        if (error) throw error;
+    },
+
+    /**
+     * 🌟 ยกเลิกรายการธุรกรรมโดยระบุหมายเหตุความจำเป็น
+     * @param {string} txId รหัสไอดีรายการธุรกรรมในฐานข้อมูล
+     * @param {string} remark เหตุผล/หมายเหตุในการยกเลิกบิล
+     */
+    async cancelTransaction(txId, remark) {
+        const { error } = await supabaseClient
+            .from('transactions')
+            .update({ 
+                status: 'cancelled', 
+                cancel_remark: remark,
+                cancelled_at: new Date().toISOString()
+            })
             .eq('id', txId);
 
         if (error) throw error;

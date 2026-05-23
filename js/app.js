@@ -1,5 +1,5 @@
 // ==========================================
-// 🚀 APPLICATION CONTROLLER (สมองกลควบคุมหลัก - เวอร์ชันรวมปุ่มรูปและรองรับส่งพร้อมกัน)
+// 🚀 APPLICATION CONTROLLER (สมองกลควบคุมหลัก - เวอร์ชันสไตล์แบรนด์ธนาคาร & แก้ไขบั๊กแบรนดิ้ง)
 // ==========================================
 
 let CENTRAL_CUSTOMER_DB = [];
@@ -7,9 +7,11 @@ let CENTRAL_TRANSACTIONS_REPORT = [];
 let isNewCustomer = false;
 let previewModalObj = null;
 let imageModalObj = null;
+let cancelModalObj = null; // 🌟 เพิ่มตัวแปรสำหรับจัดการหน้าต่างยืนยันยกเลิก
 
 let currentAction = 'CREATE'; // 'CREATE' หรือ 'REPRINT'
 let currentTxId = null;
+let cancelTxId = null; // 🌟 เก็บ ID รายการที่กำลังยกเลิก
 let reprintCountToSave = 1;
 
 // 🟢 ส่วนเริ่มต้นคำสั่งเมื่อเบราว์เซอร์โหลดหน้าเว็บเสร็จ
@@ -31,6 +33,9 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('reportStartDate').addEventListener('change', filterReportTable);
     document.getElementById('reportEndDate').addEventListener('change', filterReportTable);
     document.getElementById('btnClearReportFilter').addEventListener('click', clearReportFilters);
+    
+    // 🌟 ผูกเหตุการณ์ยืนยันการยกเลิกใน Modal
+    document.getElementById('btnConfirmCancelTx').addEventListener('click', submitCancellation);
 });
 
 // ==========================================
@@ -60,7 +65,7 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
     }
 });
 
-function onAuthSuccess(user) {
+async function onAuthSuccess(user) {
     document.getElementById('loginSection').style.display = 'none';
     document.getElementById('appMainSection').style.display = 'block';
     document.getElementById('logoutBtn').style.display = 'block';
@@ -69,7 +74,7 @@ function onAuthSuccess(user) {
     const userEmailPrefix = user.email.split('@')[0];
     document.getElementById('createdBy').value = userEmailPrefix;
 
-    initDateTime();
+    await initDateTime();
     loadCustomersData();
 }
 
@@ -177,7 +182,9 @@ function filterCustomerSearch() {
             let bName = cust.bank_name || cust.bank || '-';
             let bAcc = cust.bank_account || cust.account || '-';
             let bAccName = cust.bank_account_name || cust.accountName || '-';
-            let bankBadge = bName !== '-' ? `<span class="badge bg-secondary text-white ms-2">${bName}</span>` : '';
+            
+            let bankBadgeColorClass = getBankBadgeClass(bName);
+            let bankBadge = bName !== '-' ? `<span class="badge ${bankBadgeColorClass} ms-2">${bName}</span>` : '';
 
             btn.innerHTML = `
                 <div class="d-flex w-100 justify-content-between align-items-center">
@@ -197,7 +204,9 @@ function selectCustomerItem(indexValue) {
 
     if (indexValue === 'NEW') {
         searchInput.value = "➕ เพิ่มรายชื่อลูกค้าใหม่เอง (ระบุบัญชีเอง)";
-        lockFormFields(false); clearFormValues(); isNewCustomer = true;
+        lockFormFields(false); 
+        clearFormValues(); 
+        isNewCustomer = true;
         document.getElementById('customerBadge').className = "badge bg-danger";
         document.getElementById('customerBadge').textContent = "โหมดคีย์สดใหม่";
         showActionAlert('⚠️ คุณกำลังระบุข้อมูลบัญชีโอนด้วยตนเอง กรุณาตรวจสอบให้ละเอียด!', 'warning');
@@ -212,7 +221,7 @@ function selectCustomerItem(indexValue) {
             document.getElementById('bankAccount').value = c.bank_account || c.account || '';
             document.getElementById('bankAccountName').value = c.bank_account_name || c.accountName || '';
             
-            isNewCustomer = false;
+            isNewCustomer = false; 
             document.getElementById('customerBadge').className = "badge bg-success";
             document.getElementById('customerBadge').textContent = "ลูกค้าในคลัง";
             showActionAlert(`📂 โหลดข้อมูลบัญชีของ "${c.name}" เรียบร้อยแล้ว`, 'info');
@@ -267,6 +276,12 @@ function handleFormSubmit(e) {
     let d = docDateVal ? new Date(docDateVal) : new Date();
     const now = new Date();
 
+    const searchVal = document.getElementById('customerSearchInput').value.trim();
+    const checkMatched = CENTRAL_CUSTOMER_DB.some(cust => cust.name.toLowerCase() === searchVal.toLowerCase());
+    if (checkMatched) {
+        isNewCustomer = false;
+    }
+
     const slipData = {
         receiptNo: document.getElementById('receiptNumber').value,
         customerName: isNewCustomer ? document.getElementById('customerName').value.trim() + ' (เพิ่มใหม่)' : document.getElementById('customerName').value.trim(),
@@ -318,8 +333,19 @@ async function confirmPrintAndSave() {
 
     try {
         if (currentAction === 'CREATE') {
+            const checkExist = CENTRAL_CUSTOMER_DB.some(c => c.name.toLowerCase() === customerName.toLowerCase());
+            if (checkExist) {
+                isNewCustomer = false;
+            }
+
             if (isNewCustomer) {
-                await SupabaseDB.upsertCustomer({ name: customerName, phone: customerPhoneVal, bank_name: document.getElementById('bankName').value, bank_account: document.getElementById('bankAccount').value.trim(), bank_account_name: document.getElementById('bankAccountName').value.trim() });
+                await SupabaseDB.upsertCustomer({ 
+                    name: customerName, 
+                    phone: customerPhoneVal, 
+                    bank_name: document.getElementById('bankName').value, 
+                    bank_account: document.getElementById('bankAccount').value.trim(), 
+                    bank_account_name: document.getElementById('bankAccountName').value.trim() 
+                });
             }
             await SupabaseDB.insertTransaction({
                 receipt_number: document.getElementById('vReceiptNo').innerText,
@@ -337,18 +363,26 @@ async function confirmPrintAndSave() {
                 items_remark: document.getElementById('itemsRemark').value.trim(),
                 created_by: document.getElementById('createdBy').value.trim(),
                 print_count: 1,
-                image_urls: [] // กำหนดค่าเริ่มต้นเป็นอาเรย์ว่างสำหรับเก็บรูปภาพทั้งหมดเป็นก้อนเดียวใน Supabase
+                image_urls: [] 
             });
         } else if (currentAction === 'REPRINT') {
             await SupabaseDB.updatePrintCount(currentTxId, reprintCountToSave);
         }
 
         showActionAlert('✅ ดำเนินการธุรกรรมเรียบร้อย! กำลังเรียกใช้คำสั่งพิมพ์...', 'success');
-        setTimeout(() => { window.print(); clearForm(); loadCustomersData(); }, 800);
+        
+        setTimeout(async () => { 
+            window.print(); 
+            await clearForm(); 
+            loadCustomersData(); 
+        }, 800);
     } catch (err) {
         console.error("Save Error log:", err);
         showActionAlert('❌ ไม่สามารถบันทึกข้อมูลได้: ' + err.message + ' (ระบบอนุญาตพิมพ์กรณีฉุกเฉินด่วนได้)', 'danger');
-        setTimeout(() => { window.print(); clearForm(); }, 3000);
+        setTimeout(async () => { 
+            window.print(); 
+            await clearForm(); 
+        }, 3000);
     }
 }
 
@@ -377,15 +411,14 @@ function renderReportTable(items) {
     if (items.length === 0) { tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">ไม่พบข้อมูลประวัติธุรกรรมใดๆ</td></tr>`; return; }
 
     items.forEach((tx) => {
+        const isCancelled = tx.status === 'cancelled';
         const regDate = new Date(tx.timestamp);
         const regDateTimeStr = regDate.toLocaleDateString('th-TH', { year: '2-digit', month: 'short', day: 'numeric' }) + ' ' + regDate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
         
-        // 🌟 รวมปุ่มดึงรูปภาพ: ตรวจสอบโครงสร้างข้อมูลใหม่และตัวเลือกสำรองแบบดั้งเดิม
         let imgsData = [];
         if (tx.image_urls && Array.isArray(tx.image_urls)) {
             imgsData = tx.image_urls.filter(url => url && url.trim() !== '');
         } else {
-            // โหมดสำรองข้อมูลระบบเดิมเพื่อไม่ให้พังเวลาเปิดบิลเก่า
             if (tx.slip_image_url && tx.slip_image_url.trim() !== '') imgsData.push(tx.slip_image_url);
             if (tx.receipt_image_url && tx.receipt_image_url.trim() !== '') imgsData.push(tx.receipt_image_url);
             if (tx.cargo_image_url && tx.cargo_image_url.trim() !== '') imgsData.push(tx.cargo_image_url);
@@ -400,17 +433,47 @@ function renderReportTable(items) {
             photoBtn = `<span class="badge bg-warning text-dark py-2 px-3 fw-bold fs-6 w-full text-center d-block"><i class="bi bi-clock"></i> รอยิงรูปภาพเข้าไลน์</span>`;
         }
         
-        let nameBadge = (tx.is_new_customer && tx.is_new_customer.indexOf("ใช่") !== -1) ? `<span class="badge bg-danger text-white py-1 px-2 me-1 fs-6">ใหม่</span> ${tx.customer_name}` : tx.customer_name;
+        const isActuallyNew = tx.is_new_customer && (tx.is_new_customer.indexOf("ใช่") !== -1 || tx.is_new_customer === "true" || tx.is_new_customer === true);
+        
+        let strikeClass = isCancelled ? "text-strike" : "";
+        let nameBadge = isActuallyNew ? `<span class="badge bg-danger text-white py-1 px-2 me-1 fs-6">ใหม่</span> ${tx.customer_name}` : tx.customer_name;
         const displayPhone = tx.customer_phone ? `<br><small class="text-muted"><i class="bi bi-telephone-fill"></i> ${tx.customer_phone}</small>` : '<br><small class="text-muted">-</small>';
 
+        const bankNameText = tx.bank_name || '-';
+        const bankBadgeColorClass = getBankBadgeClass(bankNameText);
+
+        let actionColumnContent = "";
+        if (isCancelled) {
+            actionColumnContent = `
+                <div class="d-flex flex-column gap-1">
+                    <span class="badge bg-danger py-2 fs-6 fw-bold w-100 d-block"><i class="bi bi-slash-circle-fill"></i> ยกเลิกถาวร</span>
+                    <small class="text-danger fw-bold text-wrap" style="font-size: 0.85rem; line-height:1.2;">เหตุผล: ${tx.cancel_remark || '-'}</small>
+                </div>
+            `;
+        } else {
+            actionColumnContent = `
+                <div class="d-flex flex-column gap-1">
+                    <button class="btn btn-outline-danger btn-sm w-full py-1 fs-6" onclick="reprintFromReport('${tx.id}')"><i class="bi bi-printer-fill"></i> พิมพ์ซ้ำ</button>
+                    <button class="btn btn-danger btn-sm w-full py-1 fs-6" onclick="openCancelModal('${tx.id}', '${tx.receipt_number}')"><i class="bi bi-x-circle-fill"></i> ยกเลิกรายการ</button>
+                </div>
+            `;
+        }
+
         const tr = document.createElement('tr');
+        if (isCancelled) {
+            tr.className = "row-cancelled";
+        }
+        
         tr.innerHTML = `
-            <td style="font-size: 1.1rem; color: #475569;">${regDateTimeStr}</td><td class="text-danger fw-bold">${tx.receipt_number}</td><td>${nameBadge}${displayPhone}</td>
-            <td class="text-end text-success fw-bold fs-5">${parseFloat(tx.amount || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
-            <td style="font-size: 1.1rem;"><span class="badge bg-secondary mb-1">${tx.bank_name || '-'}</span><br><span class="text-break">${tx.bank_account || '-'}</span><br><span class="text-muted text-break">${tx.bank_account_name || '-'}</span></td>
-            <td class="text-center"><span class="badge bg-dark fs-6">${tx.print_count || 1} ครั้ง</span></td><td class="text-muted" style="font-size: 1.1rem;">${tx.created_by || '-'}</td>
+            <td style="font-size: 1.1rem; color: #475569;" class="${strikeClass}">${regDateTimeStr}</td>
+            <td class="text-danger fw-bold ${strikeClass}">${tx.receipt_number}</td>
+            <td class="${strikeClass}">${nameBadge}${displayPhone}</td>
+            <td class="text-end text-success fw-bold fs-5 ${strikeClass}">${parseFloat(tx.amount || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
+            <td style="font-size: 1.1rem;" class="${strikeClass}"><span class="badge ${bankBadgeColorClass} mb-1">${bankNameText}</span><br><span class="text-break">${tx.bank_account || '-'}</span><br><span class="text-muted text-break">${tx.bank_account_name || '-'}</span></td>
+            <td class="text-center ${strikeClass}"><span class="badge bg-dark fs-6">${tx.print_count || 1} ครั้ง</span></td>
+            <td class="text-muted ${strikeClass}" style="font-size: 1.1rem;">${tx.created_by || '-'}</td>
             <td><div class="d-flex flex-column">${photoBtn}</div></td>
-            <td class="text-center"><button class="btn btn-outline-danger btn-sm w-full py-2 fs-6" onclick="reprintFromReport('${tx.id}')"><i class="bi bi-printer-fill"></i> พิมพ์ซ้ำ</button></td>
+            <td class="text-center">${actionColumnContent}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -449,6 +512,12 @@ function showAttachmentImage(url, title) {
 
 function reprintFromReport(txId) {
     const tx = CENTRAL_TRANSACTIONS_REPORT.find(t => t.id === txId); if (!tx) return;
+    
+    if (tx.status === 'cancelled') {
+        showActionAlert('❌ รายการนี้ถูกยกเลิกถาวรแล้ว ไม่สามารถสั่งพิมพ์ซ้ำได้!', 'danger');
+        return;
+    }
+
     currentAction = 'REPRINT'; currentTxId = txId; reprintCountToSave = (tx.print_count || 1) + 1;
 
     toggleReprintWidgets(true);
@@ -464,7 +533,7 @@ function reprintFromReport(txId) {
         formattedAmount: parseFloat(tx.amount).toLocaleString('th-TH', { minimumFractionDigits: 2 }) + ' บาท', thaiBahtText: tx.amount_thai_text || thaiBaht(tx.amount)
     };
 
-    const isCustNew = tx.is_new_customer && tx.is_new_customer.indexOf("ใช่") !== -1;
+    const isCustNew = tx.is_new_customer && (tx.is_new_customer.indexOf("ใช่") !== -1 || tx.is_new_customer === true || tx.is_new_customer === "true");
     document.getElementById('vNewCustWarning').style.display = isCustNew ? 'block' : 'none';
     document.getElementById('vNewCustWarningCopy').style.display = isCustNew ? 'block' : 'none';
     document.getElementById('pNewCustWarning').style.display = isCustNew ? 'block' : 'none';
@@ -482,6 +551,47 @@ function toggleReprintWidgets(show) {
 }
 
 // ==========================================
+// 🌟 ฟังก์ชันจัดการยกเลิกรายการด้วย Modal (Cancellation Flow)
+// ==========================================
+function openCancelModal(txId, receiptNo) {
+    cancelTxId = txId;
+    document.getElementById('cancelReceiptNo').innerText = receiptNo;
+    document.getElementById('cancelRemarkInput').value = '';
+    document.getElementById('cancelRemarkInput').classList.remove('is-invalid');
+    
+    if (!cancelModalObj) {
+        cancelModalObj = new bootstrap.Modal(document.getElementById('cancelModal'));
+    }
+    cancelModalObj.show();
+}
+
+async function submitCancellation() {
+    const remarkInput = document.getElementById('cancelRemarkInput');
+    const remark = remarkInput.value.trim();
+
+    if (!remark) {
+        remarkInput.classList.add('is-invalid');
+        return;
+    }
+    remarkInput.classList.remove('is-invalid');
+
+    if (cancelModalObj) {
+        cancelModalObj.hide();
+    }
+
+    showActionAlert('⏳ กำลังจัดส่งข้อมูลการยกเลิกไปยังคลาวด์หลังบ้าน...', 'warning');
+
+    try {
+        await SupabaseDB.cancelTransaction(cancelTxId, remark);
+        showActionAlert('⚠️ ดำเนินการยกเลิกรายการสำเร็จแล้ว! (รายการนี้เปลี่ยนเป็นสถานะถูกยกเลิกถาวร)', 'success');
+        await loadTransactionsReportDashboard(); // รีเฟรชแดชบอร์ดสรุปแบบเรียลไทม์
+    } catch (err) {
+        console.error("Cancel Transaction Error Log:", err);
+        showActionAlert('❌ ไม่สามารถทำรายการยกเลิกได้: ' + err.message, 'danger');
+    }
+}
+
+// ==========================================
 // 💡 กลุ่มฟังก์ชันตัวช่วยฟอร์ม (Form Utilities)
 // ==========================================
 function lockFormFields(shouldLock) {
@@ -494,14 +604,22 @@ function clearFormValues() {
     document.getElementById('bankName').value = ''; document.getElementById('bankAccount').value = ''; document.getElementById('bankAccountName').value = '';
 }
 
-function initDateTime() {
+async function initDateTime() {
     const now = new Date();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     
     document.getElementById('docDate').value = `${now.getFullYear()}-${month}-${day}`;
     document.getElementById('docTime').value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    document.getElementById('receiptNumber').value = generateReceiptNo();
+    
+    try {
+        const todayCount = await SupabaseDB.countTodayTransactions();
+        document.getElementById('receiptNumber').value = generateReceiptNo(todayCount);
+    } catch (err) {
+        console.error("เรียกเลขรันนิ่งบิลผิดพลาด คืนค่าเป็นระบบรันเวลาสำรอง:", err);
+        const fallbackTime = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+        document.getElementById('receiptNumber').value = `RE-${String(now.getFullYear()).slice(-2)}${month}${day}-${fallbackTime}`;
+    }
 }
 
 function showActionAlert(msg, type) {
@@ -512,9 +630,13 @@ function showActionAlert(msg, type) {
     }
 }
 
-function clearForm() {
-    document.getElementById('paymentForm').reset(); initDateTime();
-    document.getElementById('customerSearchInput').value = ''; lockFormFields(true); isNewCustomer = false;
+async function clearForm() {
+    document.getElementById('paymentForm').reset(); 
+    await initDateTime(); 
+    document.getElementById('customerSearchInput').value = ''; 
+    lockFormFields(true); 
+    isNewCustomer = false; 
+    
     document.getElementById('customerBadge').className = "badge bg-secondary";
     document.getElementById('customerBadge').textContent = "รอลูกค้าใหม่";
 }
@@ -525,7 +647,7 @@ function showAllBillImages(encodedImgs, receiptNo) {
     document.getElementById('imageModalTitle').innerText = `หลักฐานเอกสารแนบทั้งหมดของบิล : ${receiptNo}`;
     
     const container = document.getElementById('modalImageContainer');
-    container.innerHTML = ""; // ล้างข้อมูลรูปเก่าที่ค้างอยู่
+    container.innerHTML = ""; 
     
     imgs.forEach((url, index) => {
         const directUrl = getDirectGoogleDriveUrl(url);
@@ -538,7 +660,7 @@ function showAllBillImages(encodedImgs, receiptNo) {
         container.appendChild(imgWrapper);
     });
     
-    document.getElementById('imageModalDownloadLink').style.display = "none"; // ซ่อนปุ่มดาวน์โหลดลิงก์เดี่ยวเพื่อไม่ให้ทับซ้อน
+    document.getElementById('imageModalDownloadLink').style.display = "none"; 
     
     if (!imageModalObj) imageModalObj = new bootstrap.Modal(document.getElementById('imageModal'));
     imageModalObj.show();

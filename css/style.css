@@ -163,6 +163,77 @@ body {
 
 #printArea { display: none; }
 
+/* ==========================================
+   🎨 BRAND SPECIFIC BANK BADGES (สไตล์สีแบรนด์ธนาคารไทยพรีเมียม)
+   ========================================== */
+.badge-kbank {
+    background-color: #138f2e !important;
+    color: #ffffff !important;
+    font-weight: 800;
+}
+.badge-scb {
+    background-color: #4e2e80 !important;
+    color: #ffffff !important;
+    font-weight: 800;
+}
+.badge-bbl {
+    background-color: #002d72 !important;
+    color: #ffffff !important;
+    font-weight: 800;
+}
+.badge-bay {
+    background-color: #fec425 !important;
+    color: #3b2001 !important;
+    font-weight: 800;
+}
+.badge-ktb {
+    background-color: #00a5e3 !important;
+    color: #ffffff !important;
+    font-weight: 800;
+}
+.badge-ttb {
+    background-color: #f26522 !important;
+    color: #ffffff !important;
+    font-weight: 800;
+}
+.badge-gsb {
+    background-color: #ec008c !important;
+    color: #ffffff !important;
+    font-weight: 800;
+}
+.badge-baac {
+    background-color: #006f3d !important;
+    color: #ffffff !important;
+    font-weight: 800;
+}
+.badge-ghb {
+    background-color: #ff5e00 !important;
+    color: #ffffff !important;
+    font-weight: 800;
+}
+.badge-uob {
+    background-color: #0b3a7d !important;
+    color: #ffffff !important;
+    font-weight: 800;
+}
+
+/* ==========================================
+   ⚠️ STYLES FOR CANCELLED TRANSACTIONS (แถวรายการที่ยกเลิก)
+   ========================================== */
+.row-cancelled {
+    background-color: #f1f5f9 !important;
+    opacity: 0.65;
+}
+.text-strike {
+    text-decoration: line-through;
+    color: #64748b !important;
+}
+.badge-cancelled {
+    background-color: #ef4444 !important;
+    color: #ffffff !important;
+    font-weight: 800;
+}
+
 @media print {
     body > *:not(#printArea) { display: none !important; }
     #printArea {
