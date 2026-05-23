@@ -433,11 +433,19 @@ function renderReportTable(items) {
             photoBtn = `<span class="badge bg-warning text-dark py-2 px-3 fw-bold fs-6 w-full text-center d-block"><i class="bi bi-clock"></i> รอยิงรูปภาพเข้าไลน์</span>`;
         }
         
-        // 🌟 แก้ไขบั๊กแบรนดิ้ง "ไม่ใช่" โดยการเปลี่ยนมาใช้ .startsWith("ใช่") ป้องกันคำว่า "ไม่ใช่" แสดงผลเป็นป้ายลูกค้าใหม่สีแดงผิดพลาด
-        const isActuallyNew = tx.is_new_customer && (tx.is_new_customer.startsWith("ใช่") || tx.is_new_customer === "true" || tx.is_new_customer === true);
+        // 🌟 แก้ไขบั๊กแบรนดิ้งป้ายลูกค้าใหม่สีแดง โดยเช็กตรงๆ จากชื่อลูกค้าในตารางเลยว่ามีวงเล็บ "(เพิ่มใหม่)" หรือไม่ เพื่อความเสถียรและแม่นยำสูงสุด
+        const isActuallyNew = tx.customer_name && tx.customer_name.includes('(เพิ่มใหม่)');
+        
+        // ตัดคำว่า " (เพิ่มใหม่)" ออกจากชื่อเพื่อเอาไปโชว์ที่หน้าจอรายงานแดชบอร์ดแบบสะอาดตา
+        let customerNameToShow = tx.customer_name || '';
+        if (isActuallyNew) {
+            customerNameToShow = customerNameToShow.replace('(เพิ่มใหม่)', '').trim();
+        }
         
         let strikeClass = isCancelled ? "text-strike" : "";
-        let nameBadge = isActuallyNew ? `<span class="badge bg-danger text-white py-1 px-2 me-1 fs-6">ใหม่</span> ${tx.customer_name}` : tx.customer_name;
+        let nameBadge = isActuallyNew ? `<span class="badge bg-danger text-white py-1 px-2 me-1 fs-6">ใหม่</span> ${customerNameToShow}` : customerNameToShow;
+        
+        // 🌟 แก้ไข Syntax Error: เอาตัวแปรประกาศซ้ำซ้อนออก ( displayPhone มีอันเดียวแล้วครับ)
         const displayPhone = tx.customer_phone ? `<br><small class="text-muted"><i class="bi bi-telephone-fill"></i> ${tx.customer_phone}</small>` : '<br><small class="text-muted">-</small>';
 
         const bankNameText = tx.bank_name || '-';
@@ -534,7 +542,9 @@ function reprintFromReport(txId) {
         formattedAmount: parseFloat(tx.amount).toLocaleString('th-TH', { minimumFractionDigits: 2 }) + ' บาท', thaiBahtText: tx.amount_thai_text || thaiBaht(tx.amount)
     };
 
-    const isCustNew = tx.is_new_customer && (tx.is_new_customer.startsWith("ใช่") || tx.is_new_customer === true || tx.is_new_customer === "true");
+    // 🌟 [แก้ไขบั๊กเตือนบัญชีใหม่อยู่นอกระบบขึ้นทุกบิลตอนพิมพ์ซ้ำ]
+    // สั่งให้สลีปดึงสถานะ Warning จากการตรวจสอบคำว่า "(เพิ่มใหม่)" ในชื่อลูกค้าโดยตรง ซึ่งจะตรงกับสลิปจริงตอนจัดทำขึ้นมาครั้งแรกครับ
+    const isCustNew = tx.customer_name && tx.customer_name.includes('(เพิ่มใหม่)');
     document.getElementById('vNewCustWarning').style.display = isCustNew ? 'block' : 'none';
     document.getElementById('vNewCustWarningCopy').style.display = isCustNew ? 'block' : 'none';
     document.getElementById('pNewCustWarning').style.display = isCustNew ? 'block' : 'none';
