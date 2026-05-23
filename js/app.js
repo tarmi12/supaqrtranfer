@@ -444,10 +444,19 @@ function renderReportTable(items) {
             photoBtn = `<span class="badge bg-warning text-dark py-2 px-3 fw-bold fs-6 w-full text-center d-block"><i class="bi bi-clock"></i> รอยิงรูปภาพเข้าไลน์</span>`;
         }
         
-        const isActuallyNew = tx.is_new_customer && (tx.is_new_customer.indexOf("ใช่") !== -1 || tx.is_new_customer === "true" || tx.is_new_customer === true);
+        // 💡 1. เช็กตรงๆ จากชื่อในเบสเลยว่ามีคำว่า (เพิ่มใหม่) ไหม
+        const isActuallyNew = tx.customer_name && tx.customer_name.includes('(เพิ่มใหม่)');
         
+        // 💡 2. ตัดคำว่า (เพิ่มใหม่) ออกจากชื่อเพื่อเอาไปโชว์ที่หน้าจอรายงานแบบคลีนๆ
+        let customerNameToShow = tx.customer_name || '';
+        if (isActuallyNew) {
+            customerNameToShow = customerNameToShow.replace('(เพิ่มใหม่)', '').trim();
+        }
+        
+        // ⚙️ โค้ดส่วนอื่นคงไว้เหมือนเดิมเพื่อจัดการเรื่องขีดฆ่ายกเลิกบิล และการแสดงผลเบอร์โทรศัพท์
         let strikeClass = isCancelled ? "text-strike" : "";
-        let nameBadge = isActuallyNew ? `<span class="badge bg-danger text-white py-1 px-2 me-1 fs-6">ใหม่</span> ${tx.customer_name}` : tx.customer_name;
+        let nameBadge = isActuallyNew ? `<span class="badge bg-danger text-white py-1 px-2 me-1 fs-6">ใหม่</span> ${customerNameToShow}` : customerNameToShow;
+        const displayPhone = tx.customer_phone ? `<br><small class="text-muted"><i class="bi bi-telephone-fill"></i> ${tx.customer_phone}</small>` : '<br><small class="text-muted">-</small>';
         const displayPhone = tx.customer_phone ? `<br><small class="text-muted"><i class="bi bi-telephone-fill"></i> ${tx.customer_phone}</small>` : '<br><small class="text-muted">-</small>';
 
         const bankNameText = tx.bank_name || '-';
