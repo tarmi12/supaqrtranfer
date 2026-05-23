@@ -1,5 +1,5 @@
 // ==========================================
-// 🚀 APPLICATION CONTROLLER (สมองกลควบคุมหลัก - เวอร์ชันสไตล์แบรนด์ธนาคาร & แก้ไขบั๊กแบรนดิ้ง)
+// 🚀 APPLICATION CONTROLLER (สมองกลควบคุมหลัก - สไตล์แบรนด์ธนาคาร & แก้ไขบั๊กแบรนดิ้ง "ไม่ใช่")
 // ==========================================
 
 let CENTRAL_CUSTOMER_DB = [];
@@ -325,7 +325,6 @@ async function confirmPrintAndSave() {
     if (previewModalObj) previewModalObj.hide();
     showActionAlert('⏳ กำลังบันทึกข้อมูลธุรกรรมลงระบบจัดเก็บข้อมูล...', 'info');
 
-    // 🌟 ดึงชื่อลูกค้าจากช่อง INPUT จริงที่พนักงานคีย์หรือเลือกมา
     const customerName = document.getElementById('customerName').value.trim();
     const customerPhoneVal = document.getElementById('customerPhone').value.trim();
     const amount = parseFloat(document.getElementById('amount').value);
@@ -334,34 +333,24 @@ async function confirmPrintAndSave() {
 
     try {
         if (currentAction === 'CREATE') {
-            
-            // 🌟 [จุดแก้ไขสำคัญ] ดับเบิลเช็กกับคลังลูกค้าในหน่วยความจำ (CENTRAL_CUSTOMER_DB) อีกครั้งหนึ่ง
-            // โดยการตัดคำว่า " (เพิ่มใหม่)" ออกก่อนนำไปค้นหา เพื่อป้องกันความผิดพลาด
-            const cleanCheckName = customerName.replace(' (เพิ่มใหม่)', '').trim();
-            const isExistInDB = CENTRAL_CUSTOMER_DB.some(c => c.name.toLowerCase().trim() === cleanCheckName.toLowerCase());
-            
-            if (isExistInDB) {
-                // ถ้าตรวจพบว่าชื่อนี้มีอยู่ในฐานข้อมูลลูกค้าเก่าอยู่แล้ว ให้บังคับเป็น false ทันที
+            const checkExist = CENTRAL_CUSTOMER_DB.some(c => c.name.toLowerCase() === customerName.toLowerCase());
+            if (checkExist) {
                 isNewCustomer = false;
             }
 
-            // จัดเตรียมข้อมูลส่งไปที่คลังลูกค้า (ถ้าเป็นลูกค้าใหม่จริง ๆ)
             if (isNewCustomer) {
                 await SupabaseDB.upsertCustomer({ 
-                    name: cleanCheckName, 
+                    name: customerName, 
                     phone: customerPhoneVal, 
                     bank_name: document.getElementById('bankName').value, 
                     bank_account: document.getElementById('bankAccount').value.trim(), 
                     bank_account_name: document.getElementById('bankAccountName').value.trim() 
                 });
             }
-
-            // บันทึกรายการธุรกรรมลง Supabase
             await SupabaseDB.insertTransaction({
                 receipt_number: document.getElementById('vReceiptNo').innerText,
-                // 🌟 บันทึกสถานะให้ตรงกับความจริง 
                 is_new_customer: isNewCustomer ? "ใช่ (พนักงานคีย์เองที่หน้าจอ)" : "ไม่ใช่ (เลือกจากฐานข้อมูล)",
-                customer_name: isNewCustomer ? `${cleanCheckName} (เพิ่มใหม่)` : cleanCheckName,
+                customer_name: isNewCustomer ? `${customerName} (เพิ่มใหม่)` : customerName,
                 customer_phone: customerPhoneVal,
                 bank_name: document.getElementById('bankName').value,
                 bank_account: document.getElementById('bankAccount').value.trim(),
@@ -444,18 +433,11 @@ function renderReportTable(items) {
             photoBtn = `<span class="badge bg-warning text-dark py-2 px-3 fw-bold fs-6 w-full text-center d-block"><i class="bi bi-clock"></i> รอยิงรูปภาพเข้าไลน์</span>`;
         }
         
-        // 💡 1. เช็กตรงๆ จากชื่อในเบสเลยว่ามีคำว่า (เพิ่มใหม่) ไหม
-        const isActuallyNew = tx.customer_name && tx.customer_name.includes('(เพิ่มใหม่)');
+        // 🌟 แก้ไขบั๊กแบรนดิ้ง "ไม่ใช่" โดยการเปลี่ยนมาใช้ .startsWith("ใช่") ป้องกันคำว่า "ไม่ใช่" แสดงผลเป็นป้ายลูกค้าใหม่สีแดงผิดพลาด
+        const isActuallyNew = tx.is_new_customer && (tx.is_new_customer.startsWith("ใช่") || tx.is_new_customer === "true" || tx.is_new_customer === true);
         
-        // 💡 2. ตัดคำว่า (เพิ่มใหม่) ออกจากชื่อเพื่อเอาไปโชว์ที่หน้าจอรายงานแบบคลีนๆ
-        let customerNameToShow = tx.customer_name || '';
-        if (isActuallyNew) {
-            customerNameToShow = customerNameToShow.replace('(เพิ่มใหม่)', '').trim();
-        }
-        
-        // ⚙️ จัดการเรื่องขีดฆ่ายกเลิกบิล ป้าย Badge แดง และการแสดงผลเบอร์โทรศัพท์ (แก้ไขจุดซ้ำซ้อนแล้ว)
         let strikeClass = isCancelled ? "text-strike" : "";
-        let nameBadge = isActuallyNew ? `<span class="badge bg-danger text-white py-1 px-2 me-1 fs-6">ใหม่</span> ${customerNameToShow}` : customerNameToShow;
+        let nameBadge = isActuallyNew ? `<span class="badge bg-danger text-white py-1 px-2 me-1 fs-6">ใหม่</span> ${tx.customer_name}` : tx.customer_name;
         const displayPhone = tx.customer_phone ? `<br><small class="text-muted"><i class="bi bi-telephone-fill"></i> ${tx.customer_phone}</small>` : '<br><small class="text-muted">-</small>';
 
         const bankNameText = tx.bank_name || '-';
@@ -552,7 +534,7 @@ function reprintFromReport(txId) {
         formattedAmount: parseFloat(tx.amount).toLocaleString('th-TH', { minimumFractionDigits: 2 }) + ' บาท', thaiBahtText: tx.amount_thai_text || thaiBaht(tx.amount)
     };
 
-    const isCustNew = tx.is_new_customer && (tx.is_new_customer.indexOf("ใช่") !== -1 || tx.is_new_customer === true || tx.is_new_customer === "true");
+    const isCustNew = tx.is_new_customer && (tx.is_new_customer.startsWith("ใช่") || tx.is_new_customer === true || tx.is_new_customer === "true");
     document.getElementById('vNewCustWarning').style.display = isCustNew ? 'block' : 'none';
     document.getElementById('vNewCustWarningCopy').style.display = isCustNew ? 'block' : 'none';
     document.getElementById('pNewCustWarning').style.display = isCustNew ? 'block' : 'none';

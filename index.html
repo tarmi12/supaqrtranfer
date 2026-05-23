@@ -86,7 +86,6 @@
                         <div class="card">
                             <div class="card-header-custom bg-light d-flex justify-content-between align-items-center">
                                 <span>รายละเอียดธุรกรรมจ่ายเงินโอน</span>
-                                <!-- 🌟 ซ่อนแถบป้ายสถานะตามความต้องการของผู้ใช้งานเพื่อความคลีนและตัดข้อมูลที่ไม่ได้ใช้จริงออก -->
                                 <span id="customerBadge" style="display: none;">รอลูกค้าใหม่</span>
                             </div>
                             <div class="card-body p-4">
@@ -217,7 +216,7 @@
                                         <input type="date" id="reportEndDate" class="form-control py-2 fs-6">
                                     </div>
                                     <div class="col-md-1 d-flex align-items-end">
-                                        <button id="btnClearReportFilter" class="btn btn-outline-secondary w-full py-2 fs-6 text-center px-1" title="ล้างค่าฟิลเตอร์">
+                                        <button id="btnClearReportFilter" class="btn btn-outline-secondary w-100 py-2 fs-6 text-center px-1" title="ล้างค่าฟิลเตอร์">
                                             <i class="bi bi-trash3"></i> ล้าง
                                         </button>
                                     </div>
@@ -255,7 +254,6 @@
         </div>
     </div>
 
-    <!-- Modal ตัวอย่างใบเสร็จ -->
     <div class="modal fade" id="previewModal" tabindex="-1" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-centered modal-md">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
@@ -284,7 +282,6 @@
                             <tr><td colspan="2"><div class="preview-dashed-line"></div></td></tr>
                             <tr><td valign="top">สินค้า/หมายเหตุ:</td><td class="text-end text-break" id="vRemark">-</td></tr>
                             <tr><td valign="top">รายละเอียดสลิป:</td><td class="text-end text-break" id="vSlipDetails">-</td></tr>
-                            <!-- 🌟 แสดงผลผู้ทำรายการไว้ด้านล่างหมายเหตุของใบต้นฉบับใน Modal -->
                             <tr class="fw-bold text-dark"><td>ผู้ทำรายการ:</td><td class="text-end text-break" id="vCreator">-</td></tr>
                             <tr><td colspan="2"><div class="preview-dashed-line"></div></td></tr>
                             <tr class="text-secondary" style="font-size: 0.9rem;"><td>วันเวลาพิมพ์จริง:</td><td class="text-end fw-bold" id="vPrintTime">-</td></tr>
@@ -324,7 +321,6 @@
                             <tr><td colspan="2"><div class="preview-dashed-line"></div></td></tr>
                             <tr><td valign="top">สินค้า/หมายเหตุ:</td><td class="text-end text-break" id="vRemarkCopy">-</td></tr>
                             <tr><td valign="top">รายละเอียดสลิป:</td><td class="text-end text-break" id="vSlipDetailsCopy">-</td></tr>
-                            <!-- 🌟 แสดงผลผู้ทำรายการไว้ด้านล่างหมายเหตุของใบสำเนาใน Modal -->
                             <tr class="fw-bold text-dark"><td>ผู้ทำรายการ:</td><td class="text-end text-break" id="vCreatorCopy">-</td></tr>
                             <tr><td colspan="2"><div class="preview-dashed-line"></div></td></tr>
                             <tr class="text-secondary" style="font-size: 0.9rem;"><td>วันเวลาพิมพ์จริง:</td><td class="text-end fw-bold" id="vPrintTimeCopy">-</td></tr>
@@ -347,7 +343,6 @@
         </div>
     </div>
 
-    <!-- Modal สำหรับระบุหมายเหตุการยกเลิกรายการ -->
     <div class="modal fade" id="cancelModal" tabindex="-1" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
@@ -372,7 +367,6 @@
         </div>
     </div>
 
-    <!-- Modal สำหรับแสดงผลสไลด์รูปภาพ -->
     <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
@@ -391,7 +385,6 @@
         </div>
     </div>
 
-    <!-- ส่วนจัดทำโครงพิมพ์บิลจริง 80mm -->
     <div id="printArea">
         <div style="width:80mm; box-sizing:border-box;">
             <div style="text-align:center; width:100%;">
@@ -415,7 +408,6 @@
                     <tr><td colspan="2"><hr style="border-top:1px dashed #000; margin:2mm 0;"></td></tr>
                     <tr><td style="padding:2mm 0;" valign="top">สินค้า/หมายเหตุ:</td><td style="text-align:right; font-size:14px;" id="pRemark"></td></tr>
                     <tr><td style="padding:2mm 0;" valign="top">รายละเอียดสลิป:</td><td style="text-align:right; font-size:14px;" id="pSlip"></td></tr>
-                    <!-- 🌟 แสดงผลผู้ทำรายการไว้ด้านล่างหมายเหตุของใบต้นฉบับในการสั่งพิมพ์จริง -->
                     <tr class="print-bolder"><td style="padding:2mm 0;">ผู้ทำรายการ:</td><td style="text-align:right;" id="pCreator"></td></tr>
                     <tr><td colspan="2"><hr style="border-top:1px dashed #000; margin:2mm 0;"></td></tr>
                     <tr style="font-size: 14px;"><td>วันเวลาพิมพ์จริง:</td><td style="text-align:right;" id="pPrintTime"></td></tr>
@@ -455,7 +447,6 @@
                     <tr><td colspan="2"><hr style="border-top:1px dashed #000; margin:2mm 0;"></td></tr>
                     <tr><td style="padding:2mm 0;" valign="top">สินค้า/หมายเหตุ:</td><td style="text-align:right; font-size:14px;" id="pRemarkCopy"></td></tr>
                     <tr><td style="padding:2mm 0;" valign="top">รายละเอียดสลิป:</td><td style="text-align:right; font-size:14px;" id="pSlipCopy"></td></tr>
-                    <!-- 🌟 แสดงผลผู้ทำรายการไว้ด้านล่างหมายเหตุของใบสำเนาในการสั่งพิมพ์จริง -->
                     <tr class="print-bolder"><td style="padding:2mm 0;">ผู้ทำรายการ:</td><td style="text-align:right;" id="pCreatorCopy"></td></tr>
                     <tr><td colspan="2"><hr style="border-top:1px dashed #000; margin:2mm 0;"></td></tr>
                     <tr style="font-size: 14px;"><td>วันเวลาพิมพ์จริง:</td><td style="text-align:right;" id="pPrintTimeCopy"></td></tr>
