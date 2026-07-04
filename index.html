@@ -244,6 +244,20 @@
                                         </thead>
                                         <tbody id="reportTableBody"></tbody>
                                     </table>
+
+                                    <!-- ➕ เพิ่มโค้ดส่วนนี้เข้าไป: แถบควบคุมและปุ่มกดแบ่งหน้า (Pagination) -->
+                                    <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top flex-wrap gap-2">
+                                        <div class="text-muted fs-6" id="paginationInfo">
+                                            กำลังแสดงรายการที่ 1-50 จากทั้งหมด 0 รายการ
+                                        </div>
+                                        <nav aria-label="Page navigation">
+                                            <ul class="pagination pagination-sm mb-0 justify-content-end" id="reportPagination">
+                                                <!-- ปุ่มเลขหน้า 1 2 3 4 จะถูกสร้างและแสดงตรงนี้ด้วย JavaScript -->
+                                            </ul>
+                                        </nav>
+                                    </div>
+                                    <!-- ----------------------------------------------------------- -->
+
                                 </div>
                             </div>
                         </div>
