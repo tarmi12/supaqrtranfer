@@ -14,6 +14,10 @@ let currentTxId = null;
 let cancelTxId = null; // 🌟 เก็บ ID รายการที่กำลังยกเลิก
 let reprintCountToSave = 1;
 
+// ➕ ตัวแปรสำหรับระบบแบ่งหน้าตารางรายงาน (Pagination)
+let currentPage = 1;
+const itemsPerPage = 50;
+
 // 🟢 ส่วนเริ่มต้นคำสั่งเมื่อเบราว์เซอร์โหลดหน้าเว็บเสร็จ
 document.addEventListener("DOMContentLoaded", () => {
     checkUserSession(); // ตรวจสอบสิทธิ์การเข้าใช้งาน
@@ -387,17 +391,33 @@ async function confirmPrintAndSave() {
 }
 
 // ==========================================
-// 📊 ระบบหน้ารายงานสรุปแดชบอร์ด
+// 📊 ระบบหน้ารายงานสรุปแดชบอร์ด (ปรับปรุงระบบแบ่งหน้า Pagination เรียบร้อย)
 // ==========================================
 async function loadTransactionsReportDashboard() {
     const spinner = document.getElementById('reportSpinner');
     const tableArea = document.getElementById('reportTableArea');
-    spinner.style.display = 'block'; tableArea.style.display = 'none';
+    spinner.style.display = 'block'; 
+    tableArea.style.display = 'none';
+
+    // 1. คำนวณช่วงแถวข้อมูลที่จะดึงตามหน้าปัจจุบัน
+    const from = (currentPage - 1) * itemsPerPage;
+    const to = from + itemsPerPage - 1;
 
     try {
+        // 2. ดึงข้อมูลประวัติทั้งหมดจาก SupabaseDB
         CENTRAL_TRANSACTIONS_REPORT = await SupabaseDB.fetchTransactionsReport();
-        renderReportTable(CENTRAL_TRANSACTIONS_REPORT);
-        spinner.style.display = 'none'; tableArea.style.display = 'block';
+        
+        // กรองหาจำนวนรายการรวม และเลือกตัดมาแสดงเฉพาะหน้าปัจจุบัน (ทีละ 50 รายการ)
+        const totalItems = CENTRAL_TRANSACTIONS_REPORT.length;
+        const pageItems = CENTRAL_TRANSACTIONS_REPORT.slice(from, to + 1);
+
+        renderReportTable(pageItems);
+        spinner.style.display = 'none'; 
+        tableArea.style.display = 'block';
+
+        // 3. สร้างแถบควบคุมและปุ่มกดตัวเลขสลับหน้า 1 2 3 4
+        updatePaginationControls(totalItems, from, to);
+
     } catch (err) {
         console.error("Error loading report:", err);
         spinner.style.display = 'none';
@@ -489,6 +509,9 @@ function renderReportTable(items) {
 }
 
 function filterReportTable() {
+    // สั่งรีเซ็ตค่าหน้ากลับไปหน้า 1 เสมอเมื่อมีการค้นหาหรือกรองข้อมูลใหม่
+    currentPage = 1;
+
     const keyword = document.getElementById('reportSearch').value.toLowerCase().trim();
     const startDateVal = document.getElementById('reportStartDate').value;
     const endDateVal = document.getElementById('reportEndDate').value;
@@ -503,12 +526,20 @@ function filterReportTable() {
         }
         return matchSearch && matchDate;
     });
-    renderReportTable(filtered);
+
+    // ตัดข้อมูลที่กรองได้มาแสดงเฉพาะ 50 รายการแรกของผลลัพธ์การค้นหา
+    const from = 0;
+    const to = itemsPerPage - 1;
+    const pageItems = filtered.slice(from, to + 1);
+
+    renderReportTable(pageItems);
+    updatePaginationControls(filtered.length, from, to);
 }
 
 function clearReportFilters() {
+    currentPage = 1; // รีเซ็ตหน้ากลับไปหน้าแรก
     document.getElementById('reportSearch').value = ''; document.getElementById('reportStartDate').value = ''; document.getElementById('reportEndDate').value = '';
-    renderReportTable(CENTRAL_TRANSACTIONS_REPORT);
+    loadTransactionsReportDashboard(); // เรียกโหลดผ่านแดชบอร์ดหลักเพื่อตัดแสดงหน้าแรกใหม่
 }
 
 function showAttachmentImage(url, title) {
@@ -543,7 +574,6 @@ function reprintFromReport(txId) {
     };
 
     // 🌟 [แก้ไขบั๊กเตือนบัญชีใหม่อยู่นอกระบบขึ้นทุกบิลตอนพิมพ์ซ้ำ]
-    // สั่งให้สลีปดึงสถานะ Warning จากการตรวจสอบคำว่า "(เพิ่มใหม่)" ในชื่อลูกค้าโดยตรง ซึ่งจะตรงกับสลิปจริงตอนจัดทำขึ้นมาครั้งแรกครับ
     const isCustNew = tx.customer_name && tx.customer_name.includes('(เพิ่มใหม่)');
     document.getElementById('vNewCustWarning').style.display = isCustNew ? 'block' : 'none';
     document.getElementById('vNewCustWarningCopy').style.display = isCustNew ? 'block' : 'none';
@@ -675,4 +705,70 @@ function showAllBillImages(encodedImgs, receiptNo) {
     
     if (!imageModalObj) imageModalObj = new bootstrap.Modal(document.getElementById('imageModal'));
     imageModalObj.show();
+}
+
+// ==========================================
+// ➕ ฟังก์ชันพิเศษ: วาดปุ่มกดเลขหน้าควบคุมตารางรายงาน (Pagination UI Builder)
+// ==========================================
+function updatePaginationControls(totalItems, from, to) {
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const paginationInfo = document.getElementById('paginationInfo');
+    const paginationUl = document.getElementById('reportPagination');
+
+    if (!paginationInfo || !paginationUl) return;
+
+    paginationUl.innerHTML = ''; // ล้างปุ่มของเก่าออกก่อนเพื่อเตรียมวาดใหม่
+
+    if (totalItems === 0) {
+        paginationInfo.innerText = 'ไม่พบรายการข้อมูลธุรกรรม';
+        return;
+    }
+
+    // คำนวณขอบเขตข้อมูลเพื่อแสดงข้อความกำกับสถานะ (เช่น แสดง 1-50 จากทั้งหมด 125 รายการ)
+    const displayTo = (to + 1) > totalItems ? totalItems : (to + 1);
+    paginationInfo.innerText = `กำลังแสดงรายการที่ ${from + 1}-${displayTo} จากทั้งหมด ${totalItems} รายการ`;
+
+    // ถ้าข้อมูลรวมมีจำนวนน้อยกว่าขอบเขตหน้าเดียว (มีหน้าเดียว) ไม่ต้องเขียนปุ่มแบ่งหน้า
+    if (totalPages <= 1) return;
+
+    // 1. วาดปุ่มย้อนกลับ (Previous Page)
+    const prevLi = document.createElement('li');
+    prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+    prevLi.innerHTML = `<a class="page-link" href="#" style="cursor: pointer; font-weight: 600;"><i class="bi bi-chevron-left"></i> ก่อนหน้า</a>`;
+    prevLi.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (currentPage > 1) {
+            currentPage--;
+            loadTransactionsReportDashboard();
+        }
+    });
+    paginationUl.appendChild(prevLi);
+
+    // 2. ลูปสร้างปุ่มกดตัวเลขหน้า (หน้า 1, 2, 3, 4, ...)
+    for (let i = 1; i <= totalPages; i++) {
+        const pageLi = document.createElement('li');
+        pageLi.className = `page-item ${currentPage === i ? 'active' : ''}`;
+        pageLi.innerHTML = `<a class="page-link" href="#" style="cursor: pointer; font-weight: bold;">${i}</a>`;
+        
+        pageLi.addEventListener('click', (e) => {
+            e.preventDefault();
+            currentPage = i;
+            loadTransactionsReportDashboard(); // โหลดหน้าตามเลขที่กดคลิก
+        });
+        
+        paginationUl.appendChild(pageLi);
+    }
+
+    // 3. วาดปุ่มถัดไป (Next Page)
+    const nextLi = document.createElement('li');
+    nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+    nextLi.innerHTML = `<a class="page-link" href="#" style="cursor: pointer; font-weight: 600;">ถัดไป <i class="bi bi-chevron-right"></i></a>`;
+    nextLi.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (currentPage < totalPages) {
+            currentPage++;
+            loadTransactionsReportDashboard();
+        }
+    });
+    paginationUl.appendChild(nextLi);
 }
